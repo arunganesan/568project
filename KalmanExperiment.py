@@ -44,15 +44,19 @@ def predict_State(rk, dt):
     a_x   = rk.u[0];
     a_y   = rk.u[1];
     omega = rk.u[2];
-    print "rk.u = {}".format(a_x)
+    #print "rk.u = {}".format(a_x)
     #print rk.F
     #print rk.F.shape
     #print rk.x
     #print rk.x.shape
     #print np.dot(rk.F, rk.x) 
-    rk.x = np.dot(rk.F, rk.x) + np.array([.5*a_x*dt*dt, .5*a_y*dt*dt, omega])
-    rk.P = np.dot(np.dot(rk.F, rk.P), rk.F.T) + rk.Q
+    #rk.x = np.dot(rk.F, rk.x) + np.array([.5*a_x*dt*dt, .5*a_y*dt*dt, omega])
+    #print a_y, dt
+    rk.x[0] = rk.x[0] + .5*a_x*dt*dt;
+    rk.x[1] = rk.x[1] + .5*a_y*dt*dt;
+    rk.x[2] = omega;
 
+    rk.P = np.dot(np.dot(rk.F, rk.P), rk.F.T) + rk.Q
     return rk 
 
 def minimizedAngle(theta):
@@ -66,7 +70,7 @@ from imu import *
 from measure import *
 
 # Accelerometer/Gyroscope max Update rate = 100 Hz(?)
-dt = .1 # TBD
+dt = .01 # TBD
 
 # Initialize Extended Kalman Filter
 rk = ExtendedKalmanFilter(dim_x=3, dim_z=2)
@@ -126,6 +130,7 @@ t1 = time.time()
 t2 = 0
 xs, track = [], []
 i = 1;
+
 while True:
     # print i
     #z = radar.get_range()
@@ -143,18 +148,27 @@ while True:
     # Track timestep
     t2 = time.time()
     diff = t2-t1
-    # t1 = t2
+    t1 = t2
     
     #################################################
     # Prediction Step
     #################################################
     
     # Recieve Control
-    rk.u = imu.get_latest()
+    rk.u = imu.get_latest() - offsetU
     imu.clear_all()
     
     # Prediction Step (run my own)
-    rk = predict_State(rk, dt)
+    rk = predict_State(rk, diff)
+
+    # Predict with filterpu
+
+    #rk.B = array([[1/2*diff*diff, 0,             0],
+    #              [0,             1/2*diff*diff, 0],
+    #              [0,             0,             diff]]);
+
+    #rk.predict(u);
+    #rk.x[2] = rk.u[2]
 
     #################################################
     # Update Step
@@ -179,7 +193,9 @@ while True:
     # Perform Update
     # rk.update(z[0:2], HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
     
-    print rk.x[0], rk.x[1], rk.x[2]
+    #print rk.u
+    #print rk.x[0], rk.x[1], rk.x[2]
+    print rk.u[0],rk.u[1],diff
 
     #################################################
     # Perform Smoothing
