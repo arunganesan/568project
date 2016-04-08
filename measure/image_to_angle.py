@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 # https://www.raspberrypi.org/documentation/hardware/camera.md
 def get_angle (row, col): # row/col pixel values of pixel 
   import math
@@ -9,8 +7,8 @@ def get_angle (row, col): # row/col pixel values of pixel
   HorizontalView = 53.50 # degrees 
   VerticalView = 41.41 # degrees
   
-  Cols = 2592.0
-  Rows = 1944.0
+  Cols = 640; #2592.0
+  Rows = 480; #1944.0
   SensorWidth = 3.76 # mm
   SensorHeight = 2.74
   
@@ -34,7 +32,7 @@ if __name__ == '__main__':
   X2 = 1299.56
   X3 = 2010.35
   
-  Y = 1037.16
+  Y = 100; #1037.16
   
   print get_angle(Y, X1)
   print get_angle(Y, X2)

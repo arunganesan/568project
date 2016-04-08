@@ -13,7 +13,7 @@ class Measure:
   # Send kill command to child process
   def kill (self):
     self.parent_conn.send('STOP')
-    self.parent_conn.recv()
+    #self.parent_conn.recv()
     self.p.join()
   
   # Checks if pipe has any data
@@ -36,39 +36,42 @@ class Measure:
     camera = picamera.PiCamera()
     
     while (True):
-      measurements = []
-      
-      # 1. Get camera image 
-      if self.debug_mode:
-          filename = 'image-{}.jpg'.format(int(time.time()))
-      else:
-          filename = 'image.jpg'
-      #print 'capturing to {}'.format(filename)
-      #print 'initted'
-      camera.capture(filename)
-      #print 'captured'
-      
-      # 2. Run april tags
-      cmd = './measure/april -d {}'.format(filename).split()
-      p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-      output = p.communicate()[0]
-      for line in output.split('\n'):
-        parts = line.strip().split()
-        if len(parts) == 0: continue
-        tag_id = int(parts[0])
-        pixel_loc = float(parts[1])
-        
-        # 3. Use image to angle
-        angle = get_angle(100, pixel_loc)
-        measurements.append({
-          'id': tag_id,
-          'bearing': angle[0]
-        })
-      
-      child_conn.send(measurements)
-      if child_conn.poll(0.1):
-        s = child_conn.recv()
-        if s == 'STOP': break
+      try:
+          measurements = []
+          
+          # 1. Get camera image 
+          if self.debug_mode:
+              filename = 'image-{}.jpg'.format(int(time.time()))
+          else:
+              filename = 'image.jpg'
+          #print 'capturing to {}'.format(filename)
+          #print 'initted'
+          camera.capture(filename)
+          #print 'captured'
+          
+          # 2. Run april tags
+          cmd = './measure/april -d {}'.format(filename).split()
+          p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+          output = p.communicate()[0]
+          for line in output.split('\n'):
+            parts = line.strip().split()
+            if len(parts) == 0: continue
+            tag_id = int(parts[0])
+            pixel_loc = float(parts[1])
+            
+            # 3. Use image to angle
+            angle = get_angle(100, pixel_loc)
+            measurements.append({
+              'id': tag_id,
+              'bearing': angle[0]
+            })
+          
+          child_conn.send(measurements)
+          if child_conn.poll(0.1):
+            s = child_conn.recv()
+            if s == 'STOP': break
+      except KeyboardInterrupt:
+          break
     camera.close()
   
 if __name__ == '__main__':

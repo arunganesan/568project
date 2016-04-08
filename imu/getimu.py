@@ -43,7 +43,7 @@ class IMU:
   # Send kill command to child process
   def kill (self):
     self.parent_conn.send('STOP')
-    self.parent_conn.recv()
+    #self.parent_conn.recv()
     self.p.join()
 
 
@@ -84,22 +84,24 @@ class IMU:
       import subprocess
       p = subprocess.Popen(['./imu/cppfunc'], stdout=subprocess.PIPE)
       while True:
-        line = p.stdout.readline()
-        parts = line.split();
-        if len(parts) != 7: continue
-        parts = map(float, parts)
-        #print 'Acc=({0:02},{1:02},{2:02}) Gyro=({3:02},{4:02},{5:02})'.format(*parts)
-        reading = Reading(*parts)
-        #self.readings.append(reading)
-        #print "(from cont, len is {})".format(len(self.readings))
-        
-        #print 'Got line {}'.format(len(line))
-        child_conn.send(reading)
-        if child_conn.poll(0.01):
-          s = child_conn.recv()
-          if s == 'STOP': break
-
-        if not line: break
+          try:
+                line = p.stdout.readline()
+                parts = line.split();
+                if len(parts) != 7: continue
+                parts = map(float, parts)
+                #print 'Acc=({0:02},{1:02},{2:02}) Gyro=({3:02},{4:02},{5:02})'.format(*parts)
+                reading = Reading(*parts)
+                #self.readings.append(reading)
+                #print "(from cont, len is {})".format(len(self.readings))
+                
+                #print 'Got line {}'.format(len(line))
+                child_conn.send(reading)
+                if child_conn.poll(0.01):
+                  s = child_conn.recv()
+                  if s == 'STOP': break
+          except KeyboardInterrupt:
+            break
+          if not line: break
 
 
 if __name__ == '__main__':

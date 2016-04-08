@@ -42,8 +42,6 @@ def hx(x, landmarkPosition):
     # print h
     return h
 
-# XXX TODO rk.u now has x/y/z and y/p/r and dt 
-
 def predict_State(rk, dt):
     a_x   = rk.u[0];
     a_y   = rk.u[1];
@@ -90,7 +88,7 @@ while True:
     if l != None: break
 
 # Initialize measurement
-#measure = Measure(debug_mode=True)
+measure = Measure(debug_mode=False)
 
 # Make an imperfect sta rting guess
 #rk.x = array([0, 0 , 0]) #x, y, theta, v_x, v_y
@@ -141,92 +139,101 @@ t2 = 0
 xs, track = [], []
 i = 1;
 
-while True:
-    # print i
-    #z = radar.get_range()
-    
-    #track.append((radar.pos, radar.vel, radar.alt))
 
-    #rk.update(array([z]), HJacobian_at, hx)
-    
-    #xs.append(rk.x)
-    #rk.predict()
-    #xs = asarray(xs)
-    #track = asarray(track)
-    #time = np.arange(0, len(xs)*dt, dt)
+try:
+    while True:
+        # print i
+        #z = radar.get_range()
+        
+        #track.append((radar.pos, radar.vel, radar.alt))
 
-    # Track timestep
-    t2 = time.time()
-    diff = t2-t1
-    t1 = t2
-    
-    #################################################
-    # Prediction Step
-    #################################################
-    
-    # Recieve Control
-    rk.u = imu.get_latest() - offsetU
-    imu.clear_all()
+        #rk.update(array([z]), HJacobian_at, hx)
+        
+        #xs.append(rk.x)
+        #rk.predict()
+        #xs = asarray(xs)
+        #track = asarray(track)
+        #time = np.arange(0, len(xs)*dt, dt)
 
+        # Track timestep
+        t2 = time.time()
+        diff = t2-t1
+        t1 = t2
+        
+        #################################################
+        # Prediction Step
+        #################################################
+        
+        # Recieve Control
+        #print 'getting state'
+        rk.u = imu.get_latest() - offsetU
+        #print 'got state'
+        imu.clear_all()
+        
+        
+        # Change process matrix accordingly
+        rk.F = array([[1, 0, 0, diff,  0],
+                  [0, 1, 0,  0, diff],
+                  [0, 0, 1,  0, 0],
+                  [0, 0, 0,  1, 0],
+                  [0, 0, 0,  0, 1]]) 
+        
+        # Prediction Step (run my own)
+        rk = predict_State(rk, diff)
 
-    # Change process matrix accordingly
-    rk.F = array([[1, 0, 0, diff,  0],
-              [0, 1, 0,  0, diff],
-              [0, 0, 1,  0, 0],
-              [0, 0, 0,  1, 0],
-              [0, 0, 0,  0, 1]]) 
-    
-    # Prediction Step (run my own)
-    rk = predict_State(rk, diff)
+        # Predict with filterpu
 
-    # Predict with filterpu
+        #rk.B = array([[1/2*diff*diff, 0,             0],
+        #              [0,             1/2*diff*diff, 0],
+        #              [0,             0,             diff]]);
 
-    #rk.B = array([[1/2*diff*diff, 0,             0],
-    #              [0,             1/2*diff*diff, 0],
-    #              [0,             0,             diff]]);
+        #rk.predict(u);
+        #rk.x[2] = rk.u[2]
 
-    #rk.predict(u);
-    #rk.x[2] = rk.u[2]
+        #################################################
+        # Update Step
+        #################################################
 
-    #################################################
-    # Update Step
-    #################################################
-
-    # Recieve Measurement
-    
-    # Measurements is a list of measurements
-    # Each item in the list is a dictionary 
-    # {'bearing': degrees, 'tag': id}
-    # If a measurement is not ready, this returns []
-    # measurements = measure.get_measurement()
-    
-    # Data Formal:
-    # z = [ range; theta; markerID]
-    # First two are used in measurement, last one in calculation of h(x) etc. 
-    z = np.array([5, .32, 1])
-
-    # Recieve landmark position
-    landmarkPosition = np.array([5,10])
-
-    # Perform Update
-    # rk.update(z[0:2], HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
-    
-    printStuff(rk)
-    #################################################
-    # Perform Smoothing
-    #################################################
-
-
-
-
-
-
-    # Debugging stuff
-    # i = i+1
+        # Recieve Measurement
+        
+        # Measurements is a list of measurements
+        # Each item in the list is a dictionary 
+        # {'bearing': degrees, 'tag': id}
+        # If a measurement is not ready, this returns []
+        measurements = measure.get_measurement()
+        
+        # Data Formal:
+        # z = [ range; theta; markerID]
+        # First two are used in measurement, last one in calculation of h(x) etc. 
+        
+        for zm in measurements:
+            z = np.array([zm['bearing']])
+            markerId = zm['id']
+            landmarkPosition = get_landmark(markerId)
+            rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
+        
+        #printStuff(rk)
+        print i, measurements
+        i += 1
+        #printMeasurement(measurements)
+        #################################################
+        # Perform Smoothing
+        #################################################
 
 
+        
 
-    time.sleep(dt)
 
-imu.kill()
-#measure.kill()
+        # Debugging stuff
+        # i = i+1
+
+
+
+        time.sleep(dt)
+
+except KeyboardInterrupt, SystemExit:
+   print 'Shutting down'
+   imu.kill()
+   measure.kill()
+   time.sleep(1)
+   exit(1)
