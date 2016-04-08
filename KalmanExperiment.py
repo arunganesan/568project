@@ -44,12 +44,13 @@ def predict_State(rk, dt):
     a_x   = rk.u[0];
     a_y   = rk.u[1];
     omega = rk.u[2];
+    print "rk.u = {}".format(a_x)
     #print rk.F
     #print rk.F.shape
     #print rk.x
     #print rk.x.shape
     #print np.dot(rk.F, rk.x) 
-    rk.x = np.dot(rk.F, rk.x) + np.array([1/2*a_x*dt*dt, 1/2*a_y*dt*dt, omega])
+    rk.x = np.dot(rk.F, rk.x) + np.array([.5*a_x*dt*dt, .5*a_y*dt*dt, omega])
     rk.P = np.dot(np.dot(rk.F, rk.P), rk.F.T) + rk.Q
 
     return rk 
@@ -150,7 +151,6 @@ while True:
     
     # Recieve Control
     rk.u = imu.get_latest()
-    print rk.u
     imu.clear_all()
     
     # Prediction Step (run my own)
