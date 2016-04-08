@@ -62,6 +62,7 @@ def minimizedAngle(theta):
     return theta
 
 from imu import *
+from measure import *
 
 # Accelerometer/Gyroscope max Update rate = 100 Hz(?)
 dt = 1/10.0 # TBD
@@ -75,6 +76,9 @@ while True:
     l = imu.get_latest()
     imu.clear_all()
     if l != None: break
+
+# Initialize measurement
+measure = Measure()
 
 # Make an imperfect starting guess
 rk.x = array([0, 0 , 0 , 0 , 0]) #x, y, theta, v_x, v_y
@@ -158,7 +162,13 @@ while True:
     #################################################
 
     # Recieve Measurement
-
+    
+    # Measurements is a list of measurements
+    # Each item in the list is a dictionary 
+    # {'bearing': degrees, 'tag': id}
+    # If a measurement is not ready, this returns []
+    measurements = measure.get_measurement()
+    
     # Data Formal:
     # z = [ range; theta; markerID]
     # First two are used in measurement, last one in calculation of h(x) etc. 
@@ -189,3 +199,4 @@ while True:
     time.sleep(dt)
 
 imu.kill()
+measure.kill()

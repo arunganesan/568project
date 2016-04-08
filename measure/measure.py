@@ -46,7 +46,7 @@ class Measure:
       #print 'captured'
       
       # 2. Run april tags
-      cmd = './april -d {}'.format(filename).split()
+      cmd = './measure/april -d {}'.format(filename).split()
       p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
       output = p.communicate()[0]
       for line in output.split('\n'):
