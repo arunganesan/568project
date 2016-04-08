@@ -17,7 +17,7 @@ class Reading:
         import numpy as np
         return np.array([self.x, self.y, self.z, \
                         self.yaw, self.p, self.r, self.dt])
-
+    
     def __str__ (self):
         return 'dt={6:02} Acc=({0:02},{1:02},{2:02}) Gyro=({3:02},{4:02},{5:02})'.\
                 format( self.x, self.y, self.z, \
@@ -59,7 +59,12 @@ class IMU:
   def get_latest (self):
     self._clear_pipe()
     if len(self.readings) == 0: return None
-    else: return self.readings[-1];
+    else: 
+        nparr = np.zeros(3)
+        nparr[0] = self.readings[-1].x
+        nparr[1] = self.readings[-1].y
+        nparr[2] = self.readings[-1].r
+        return nparr
 
   def get_averaged (self):
       import numpy as np
@@ -75,7 +80,7 @@ class IMU:
 
   def read_continuous (self, child_conn):
       import subprocess
-      p = subprocess.Popen(['./cppfunc'], stdout=subprocess.PIPE)
+      p = subprocess.Popen(['./imu/cppfunc'], stdout=subprocess.PIPE)
       while True:
         line = p.stdout.readline()
         parts = line.split();

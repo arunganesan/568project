@@ -38,6 +38,8 @@ def hx(x, landmarkPosition):
     # print h
     return h
 
+# XXX TODO rk.u now has x/y/z and y/p/r and dt 
+
 def predict_State(rk, dt):
     a_x   = rk.u[0]*.01*9.81;
     a_y   = rk.u[1]*.01*9.81;
@@ -59,7 +61,7 @@ def minimizedAngle(theta):
         theta += 2*math.pi
     return theta
 
-from readIMU_9DOF import readIMU_9DOF
+from imu import *
 
 # Accelerometer/Gyroscope max Update rate = 100 Hz(?)
 dt = 1/10.0 # TBD
@@ -68,7 +70,11 @@ dt = 1/10.0 # TBD
 rk = ExtendedKalmanFilter(dim_x=5, dim_z=2)
 
 # Initialize IMU
-imu = readIMU_9DOF()
+imu = IMU()
+while True:
+    l = imu.get_latest()
+    imu.clear_all()
+    if l != None: break
 
 # Make an imperfect starting guess
 rk.x = array([0, 0 , 0 , 0 , 0]) #x, y, theta, v_x, v_y
@@ -97,9 +103,9 @@ rk.P = np.diag([range_std**2, range_std**2, range_std**2, range_std**2, range_st
 
 # Test IMU
 num = 10
-u = imu.getControlInput()
+u = imu.get_latest()
 for i in range(0,num-1):
-    u += imu.getControlInput()
+    u += imu.get_latest()
     time.sleep(dt)
 
 u = u/num
@@ -141,7 +147,9 @@ while True:
     #################################################
     
     # Recieve Control
-    rk.u = imu.getControlInput() - offsetU
+    rk.u = imu.get_latest()
+    imu.clear_all()
+    
     # Prediction Step (run my own)
     rk = predict_State(rk, dt)
 
@@ -173,10 +181,11 @@ while True:
 
 
 
-
     # Debugging stuff
     # i = i+1
 
 
 
     time.sleep(dt)
+
+imu.kill()
