@@ -1,10 +1,11 @@
 #! /usr/bin/env python
 
 class Measure:
-  def __init__ (self):
+  def __init__ (self, debug_mode=False):
     import picamera
     from multiprocessing import Pipe, Process
     self.measurements = []
+    self.debug_mode = debug_mode
     self.parent_conn, self.child_conn = Pipe()
     self.p = Process(target=self.do_measure, args=(self.child_conn,))
     self.p.start()
@@ -38,8 +39,10 @@ class Measure:
       measurements = []
       
       # 1. Get camera image 
-      #filename = 'image-{}.jpg'.format(int(time.time()))
-      filename = 'image.jpg'
+      if self.debug_mode:
+          filename = 'image-{}.jpg'.format(int(time.time()))
+      else:
+          filename = 'image.jpg'
       #print 'capturing to {}'.format(filename)
       #print 'initted'
       camera.capture(filename)

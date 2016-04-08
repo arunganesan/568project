@@ -41,8 +41,8 @@ def hx(x, landmarkPosition):
 # XXX TODO rk.u now has x/y/z and y/p/r and dt 
 
 def predict_State(rk, dt):
-    a_x   = rk.u[0]*.01*9.81;
-    a_y   = rk.u[1]*.01*9.81;
+    a_x   = rk.u[0];
+    a_y   = rk.u[1];
     omega = rk.u[2];
     #print rk.F
     #print rk.F.shape
@@ -78,7 +78,7 @@ while True:
     if l != None: break
 
 # Initialize measurement
-measure = Measure()
+measure = Measure(debug_mode=True)
 
 # Make an imperfect starting guess
 rk.x = array([0, 0 , 0 , 0 , 0]) #x, y, theta, v_x, v_y
