@@ -48,9 +48,10 @@ class IMU:
 
 
   def _clear_pipe (self):
-    while (self.parent_conn.poll(0.1) != False):
+    while (self.parent_conn.poll(0.01) != False):
         reading = self.parent_conn.recv()
         self.readings.append(reading)
+    
     if len(self.readings) > 10:
         print 'Warning: Cleared pipe, {} elements remaining, maybe trashing.'.format(len(self.readings))
     #print 'Cleared pipe. Readings has {} elements'.format(len(self.readings))
@@ -58,6 +59,7 @@ class IMU:
 
   def get_latest (self):
     self._clear_pipe()
+    
     if len(self.readings) == 0: return None
     else: 
         nparr = np.zeros(3)
@@ -90,10 +92,10 @@ class IMU:
         reading = Reading(*parts)
         #self.readings.append(reading)
         #print "(from cont, len is {})".format(len(self.readings))
-
+        
         #print 'Got line {}'.format(len(line))
         child_conn.send(reading)
-        if child_conn.poll(0.1):
+        if child_conn.poll(0.01):
           s = child_conn.recv()
           if s == 'STOP': break
 

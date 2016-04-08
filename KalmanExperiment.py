@@ -23,8 +23,8 @@ def HJacobian_at(x, landmarkPosition):
     dx = landmarkPosition[0] - x[0]
     dy = landmarkPosition[1] - x[1]
     q  = dx**2 + dy**2
-    H  =  np.array ([[-dx/sqrt(q), -dy/sqrt(q),  0, 0, 0],
-                     [ dy/q      , -dx/q      , -1, 0, 0]]) 
+    H  =  np.array ([[-dx/sqrt(q), -dy/sqrt(q),  0, ],
+                     [ dy/q      , -dx/q      , -1, ]]) 
     # print H.shape
     return H
 
@@ -49,7 +49,7 @@ def predict_State(rk, dt):
     #print rk.x
     #print rk.x.shape
     #print np.dot(rk.F, rk.x) 
-    rk.x = np.dot(rk.F, rk.x) + np.array([1/2*a_x*dt*dt, 1/2*a_y*dt*dt, omega*dt, a_x*dt, a_y*dt])
+    rk.x = np.dot(rk.F, rk.x) + np.array([1/2*a_x*dt*dt, 1/2*a_y*dt*dt, omega])
     rk.P = np.dot(np.dot(rk.F, rk.P), rk.F.T) + rk.Q
 
     return rk 
@@ -65,10 +65,10 @@ from imu import *
 from measure import *
 
 # Accelerometer/Gyroscope max Update rate = 100 Hz(?)
-dt = 1/10.0 # TBD
+dt = .1 # TBD
 
 # Initialize Extended Kalman Filter
-rk = ExtendedKalmanFilter(dim_x=5, dim_z=2)
+rk = ExtendedKalmanFilter(dim_x=3, dim_z=2)
 
 # Initialize IMU
 imu = IMU()
@@ -78,22 +78,20 @@ while True:
     if l != None: break
 
 # Initialize measurement
-measure = Measure(debug_mode=True)
+#measure = Measure(debug_mode=True)
 
-# Make an imperfect starting guess
-rk.x = array([0, 0 , 0 , 0 , 0]) #x, y, theta, v_x, v_y
+# Make an imperfect sta rting guess
+rk.x = array([0, 0 , 0]) #x, y, theta, v_x, v_y
 
-rk.F = array([[1, 0, 0, dt,  0],
-              [0, 1, 0,  0, dt],
-              [0, 0, 1,  0, 0],
-              [0, 0, 0,  1, 0],
-              [0, 0, 0,  0, 1]])
+rk.F = array([[1, 0, 0],
+              [0, 1, 0],
+              [0, 0, 1]])
 
 
 # Noise Parameters (will require tuning)
 range_std = .01 # metersi
 # Motion Noise
-rk.Q = np.diag([range_std**2, range_std**2, range_std**2, range_std**2, range_std**2 ])
+rk.Q = np.diag([range_std**2, range_std**2, range_std**2 ])
 # Measurement Noise
 rk.R = np.diag([range_std**2, range_std**2])
 
@@ -102,7 +100,7 @@ rk.R = np.diag([range_std**2, range_std**2])
 #rk.Q[2,2] = 0.1
 
 # For some reason, Sigma is called P here....
-rk.P = np.diag([range_std**2, range_std**2, range_std**2, range_std**2, range_std**2 ])
+rk.P = np.diag([range_std**2, range_std**2, range_std**2 ])
 
 
 # Test IMU
@@ -152,6 +150,7 @@ while True:
     
     # Recieve Control
     rk.u = imu.get_latest()
+    print rk.u
     imu.clear_all()
     
     # Prediction Step (run my own)
@@ -167,7 +166,7 @@ while True:
     # Each item in the list is a dictionary 
     # {'bearing': degrees, 'tag': id}
     # If a measurement is not ready, this returns []
-    measurements = measure.get_measurement()
+    # measurements = measure.get_measurement()
     
     # Data Formal:
     # z = [ range; theta; markerID]
@@ -180,7 +179,7 @@ while True:
     # Perform Update
     # rk.update(z[0:2], HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
     
-    print rk.x[4]
+    print rk.x[0], rk.x[1], rk.x[2]
 
     #################################################
     # Perform Smoothing
@@ -199,4 +198,4 @@ while True:
     time.sleep(dt)
 
 imu.kill()
-measure.kill()
+#measure.kill()
