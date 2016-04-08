@@ -17,6 +17,10 @@ from math import sqrt
 
 
 # Measurement model from Probabilistic Robotics, page 207
+def printStuff(rk):
+    print rk.x[0], rk.x[1], rk.x[2]
+    #print rk.u[1], rk.u[1]
+
 def HJacobian_at(x, landmarkPosition):
     """ compute Jacobian of H matrix for state x """
 
@@ -51,9 +55,12 @@ def predict_State(rk, dt):
     #print rk.x.shape
     #print np.dot(rk.F, rk.x) 
     #rk.x = np.dot(rk.F, rk.x) + np.array([.5*a_x*dt*dt, .5*a_y*dt*dt, omega])
+
+    # Account for zero velocities
+    rk.x = np.dot(rk.F, rk.x) + np.array([.5*a_x*dt*dt, .5*a_y*dt*dt, omega*dt/14.375, a_x*dt, a_y*dt])
     #print a_y, dt
-    rk.x[0] = rk.x[0] + .5*a_x*dt*dt;
-    rk.x[1] = rk.x[1] + .5*a_y*dt*dt;
+    #rk.x[0] = rk.x[0] + .5*a_x*dt*dt;
+    #rk.x[1] = rk.x[1] + .5*a_y*dt*dt;
     rk.x[2] = omega;
 
     rk.P = np.dot(np.dot(rk.F, rk.P), rk.F.T) + rk.Q
@@ -73,7 +80,7 @@ from measure import *
 dt = .01 # TBD
 
 # Initialize Extended Kalman Filter
-rk = ExtendedKalmanFilter(dim_x=3, dim_z=2)
+rk = ExtendedKalmanFilter(dim_x=5, dim_z=2)
 
 # Initialize IMU
 imu = IMU()
@@ -86,17 +93,20 @@ while True:
 #measure = Measure(debug_mode=True)
 
 # Make an imperfect sta rting guess
-rk.x = array([0, 0 , 0]) #x, y, theta, v_x, v_y
+#rk.x = array([0, 0 , 0]) #x, y, theta, v_x, v_y
 
+rk.x = array([0, 0 , 0, 0, 0]) #x, y, theta, v_x, v_y
+"""
 rk.F = array([[1, 0, 0],
               [0, 1, 0],
               [0, 0, 1]])
-
+"""
 
 # Noise Parameters (will require tuning)
 range_std = .01 # metersi
 # Motion Noise
-rk.Q = np.diag([range_std**2, range_std**2, range_std**2 ])
+#rk.Q = np.diag([range_std**2, range_std**2, range_std**2 ])
+rk.Q = np.diag([range_std**2, range_std**2, range_std**2,  range_std**2, range_std**2])
 # Measurement Noise
 rk.R = np.diag([range_std**2, range_std**2])
 
@@ -105,8 +115,8 @@ rk.R = np.diag([range_std**2, range_std**2])
 #rk.Q[2,2] = 0.1
 
 # For some reason, Sigma is called P here....
-rk.P = np.diag([range_std**2, range_std**2, range_std**2 ])
-
+#rk.P = np.diag([range_std**2, range_std**2, range_std**2 ])
+rk.P = np.diag([range_std**2, range_std**2, range_std**2,  range_std**2, range_std**2])
 
 # Test IMU
 num = 10
@@ -157,6 +167,14 @@ while True:
     # Recieve Control
     rk.u = imu.get_latest() - offsetU
     imu.clear_all()
+
+
+    # Change process matrix accordingly
+    rk.F = array([[1, 0, 0, diff,  0],
+              [0, 1, 0,  0, diff],
+              [0, 0, 1,  0, 0],
+              [0, 0, 0,  1, 0],
+              [0, 0, 0,  0, 1]]) 
     
     # Prediction Step (run my own)
     rk = predict_State(rk, diff)
@@ -193,10 +211,7 @@ while True:
     # Perform Update
     # rk.update(z[0:2], HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
     
-    #print rk.u
-    #print rk.x[0], rk.x[1], rk.x[2]
-    print rk.u[0],rk.u[1],diff
-
+    printStuff(rk)
     #################################################
     # Perform Smoothing
     #################################################
