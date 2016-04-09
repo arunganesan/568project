@@ -51,32 +51,17 @@ def hx(x, landmarkPosition):
     dx = landmarkPosition[0] - x[0]
     dy = landmarkPosition[1] - x[1]
     q  = dx**2 + dy**2 
-    #h  = np.array([sqrt(q), minimizedAngle(math.atan2(dy, dx) - x[2])])  
-    #h = np.array([[minimizedAngle(math.atan2(dy, dx) - x[2])]])
-    #h = np.array([minimizedAngle(math.atan2(dy, dx) - x[2])])
     
     rad = math.radians(x[2])
     
     h = np.array([[minimizedAngle(math.atan2(dy, dx) - rad)]])
-    #print '> dx, dy: ', dx, dy
-    #print '> atan2: ', math.degrees(math.atan2(dy, dx))
-    #print '> bearing in degrees: ', math.degrees(rad)
-    #print '> min angle: ', h[0]
-    #print '> min angle in degrees: ', math.degrees(h[0])
     return h
 
 def predict_State(rk, dt):
     a_x   = rk.u[0];
     a_y   = rk.u[1];
     omega = rk.u[2];
-    #print "rk.u = {}".format(a_x)
-    #print rk.F
-    #print rk.F.shape
-    #print rk.x
-    #print rk.x.shape
-    #print np.dot(rk.F, rk.x) 
-    #rk.x = np.dot(rk.F, rk.x) + np.array([.5*a_x*dt*dt, .5*a_y*dt*dt, omega])
-
+    
     # Account for zero velocities
     rk.x = np.dot(rk.F, rk.x) + np.array([[.5*a_x*dt*dt, .5*a_y*dt*dt, omega*dt/14.375, a_x*dt, a_y*dt]]).T
     #print a_y, dt
