@@ -141,9 +141,9 @@ void on_data(const float data[])
         pitch += 30*gyroPitch/scalar*dt;
         roll += 30*gyroRoll/scalar*dt;
         
-        //cout << accX << " " << accY << " " << accZ << " " << yaw << " " << pitch << " " << roll << " " <<dt << endl;
+        cout << accX << " " << accY << " " << accZ << " " << yaw << " " << pitch << " " << roll << " " <<dt << endl;
         
-        cout << velocity_y << " " << gyroRoll/scalar*30 << " " << dt << endl;
+        //cout << velocity_y << " " << gyroRoll/scalar*30 << " " << dt << endl;
         
         //cout << fixed << setprecision(3) << setw(10) << yaw << setw(10) << pitch << setw(10) <<  roll << endl;
         //cout << accX << " " << accY << " " << accZ << " " << gyroYaw << " " << gyroPitch << " " << gyroRoll << " " <<dt << endl;

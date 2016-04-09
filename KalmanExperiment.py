@@ -28,8 +28,8 @@ parser.add_argument('-theta', type=float, default=0)
 args = parser.parse_args()
 
 # Measurement model from Probabilistic Robotics, page 207
-def printStuff(rk, measurements):
-    print rk.x[0], rk.x[1], rk.x[2], rk.x[3], rk.x[4], measurements
+def printStuff(rk, measurements, zerod):
+    print rk.x[0], rk.x[1], rk.x[2], rk.x[3], rk.x[4], measurements, zerod
     #print rk.u[1], rk.u[1]
 
 def HJacobian_at(x, landmarkPosition):
@@ -102,7 +102,7 @@ while True:
 #measure = Measure(debug_mode=False)
 
 # Initialize flow detection
-#flow = Flow()
+flow = Flow()
 
 # Make an imperfect sta rting guess
 #rk.x = array([0, 0 , 0]) #x, y, theta, v_x, v_y
@@ -193,18 +193,16 @@ try:
         #################################################
         # Flow Update
         #################################################
-        """
         latest_motion = flow.get_motion()
+        zerod = False
         if latest_motion != None:
             motions += latest_motion
             motions[:-LAST_N] = []
-            if all([m < MOTION_THRESH]):
+            if all([m < MOTION_THRESH for m in motions]):
                 # Zero velocities
-                print '!! Stopping velocity'
                 rk.x[3] = 0
-                rk.y[3] = 0
-                
-        """
+                rk.x[4] = 0
+                zerod = True
 
 
 
@@ -256,7 +254,7 @@ try:
             z[0] = math.radians(z[0])
             #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
         
-        printStuff(rk, measurements)
+        printStuff(rk, measurements, zerod)
         #print i, measurements
         i += 1
         
