@@ -20,10 +20,16 @@ import time
 import math
 from math import sqrt
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-x', type=float, default=0)
+parser.add_argument('-y', type=float, default=0)
+parser.add_argument('-theta', type=float, default=0)
+args = parser.parse_args()
 
 # Measurement model from Probabilistic Robotics, page 207
-def printStuff(rk):
-    print rk.x[0], rk.x[1], rk.x[2]
+def printStuff(rk, measurements):
+    print rk.x[0], rk.x[1], rk.x[2], rk.x[3], rk.x[4], measurements
     #print rk.u[1], rk.u[1]
 
 def HJacobian_at(x, landmarkPosition):
@@ -47,10 +53,16 @@ def hx(x, landmarkPosition):
     q  = dx**2 + dy**2 
     #h  = np.array([sqrt(q), minimizedAngle(math.atan2(dy, dx) - x[2])])  
     #h = np.array([[minimizedAngle(math.atan2(dy, dx) - x[2])]])
-    h = np.array([minimizedAngle(math.atan2(dy, dx) - x[2])])
-    # print h
-
-    #print 'in kal.', h.shape
+    #h = np.array([minimizedAngle(math.atan2(dy, dx) - x[2])])
+    
+    rad = math.radians(x[2])
+    
+    h = np.array([[minimizedAngle(math.atan2(dy, dx) - rad)]])
+    #print '> dx, dy: ', dx, dy
+    #print '> atan2: ', math.degrees(math.atan2(dy, dx))
+    #print '> bearing in degrees: ', math.degrees(rad)
+    #print '> min angle: ', h[0]
+    #print '> min angle in degrees: ', math.degrees(h[0])
     return h
 
 def predict_State(rk, dt):
@@ -78,8 +90,10 @@ def predict_State(rk, dt):
 def minimizedAngle(theta):
     while theta>math.pi:
         theta -= 2*math.pi
-    while theta<math.pi:
+    
+    while theta<-math.pi:
         theta += 2*math.pi
+    
     return theta
 
 from imu import *
@@ -104,7 +118,7 @@ measure = Measure(debug_mode=False)
 # Make an imperfect sta rting guess
 #rk.x = array([0, 0 , 0]) #x, y, theta, v_x, v_y
 
-rk.x = array([[0, 0 , 0, 0, 0]]).T #x, y, theta, v_x, v_y
+rk.x = array([[args.x, args.y, args.theta, 0, 0]]).T #x, y, theta, v_x, v_y
 """
 rk.F = array([[1, 0, 0],
               [0, 1, 0],
@@ -113,12 +127,16 @@ rk.F = array([[1, 0, 0],
 
 # Noise Parameters (will require tuning)
 range_std = .01 # metersi
+range_angle = 5 
+
 # Motion Noise
 #rk.Q = np.diag([range_std**2, range_std**2, range_std**2 ])
-rk.Q = np.diag([range_std**2, range_std**2, range_std**2,  range_std**2, range_std**2])
+
+rk.Q = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2, 1, 1])
+
 # Measurement Noise
 #rk.R = np.diag([range_std**2, range_std**2])
-rk.R = np.array([[range_std**2]])
+rk.R = np.array([[math.radians(range_angle)**2]])
 
 # This might imply correlation which in our case is unfounded
 #rk.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.1)
@@ -223,11 +241,11 @@ try:
             markerId = zm['id']
             landmarkPosition = get_landmark(markerId)
             
-            
-            rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
+            z[0] = math.radians(z[0])
+            #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
         
-        #printStuff(rk)
-        print i, measurements
+        printStuff(rk, measurements)
+        #print i, measurements
         i += 1
         #printMeasurement(measurements)
         #################################################
