@@ -45,14 +45,13 @@ class Flow:
     self._clear_pipe()
     if len(self.motions) == 0: return None
     else:
-        last = self.motions[-1]
+        copy = self.motions
         self.motions = []
-        return last
-        return self.motions[-1]
+        return copy
    
   def do_motion_detect (self, child_conn):
     import picamera, subprocess, time
-    camera = picamera.PiCamera(framerate=5)
+    camera = picamera.PiCamera(framerate=20)
     
     output = DetectMotion(camera)
     output.set_conn(child_conn)

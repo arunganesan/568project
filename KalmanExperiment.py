@@ -68,7 +68,7 @@ def predict_State(rk, dt):
     #rk.x[0] = rk.x[0] + .5*a_x*dt*dt;
     #rk.x[1] = rk.x[1] + .5*a_y*dt*dt;
     rk.x[2] = omega;
-
+    
     rk.P = np.dot(np.dot(rk.F, rk.P), rk.F.T) + rk.Q
     return rk 
 
@@ -82,7 +82,8 @@ def minimizedAngle(theta):
     return theta
 
 from imu import *
-from measure import *
+#from measure import *
+from flow import *
 
 # Accelerometer/Gyroscope max Update rate = 100 Hz(?)
 dt = .01 # TBD
@@ -98,7 +99,10 @@ while True:
     if l != None: break
 
 # Initialize measurement
-measure = Measure(debug_mode=False)
+#measure = Measure(debug_mode=False)
+
+# Initialize flow detection
+#flow = Flow()
 
 # Make an imperfect sta rting guess
 #rk.x = array([0, 0 , 0]) #x, y, theta, v_x, v_y
@@ -131,6 +135,17 @@ rk.R = np.array([[math.radians(range_angle)**2]])
 #rk.P = np.diag([range_std**2, range_std**2, range_std**2 ])
 rk.P = np.diag([range_std**2, range_std**2, range_std**2,  range_std**2, range_std**2])
 
+
+# Flow related constants
+MOTION_THRESH = 10  # The number of pixels that have high motion must be at 
+                    # least this to be considered a "motion"
+
+LAST_N = 10         # The last number of frames with no motion has to exceed 
+                    # this value before we consider it to be "stopped". If the 
+                    # framerate is low, this value needs to be lower. 
+
+motions = []
+
 # Test IMU
 num = 10
 u = imu.get_latest()
@@ -161,7 +176,7 @@ try:
         #z = radar.get_range()
         
         #track.append((radar.pos, radar.vel, radar.alt))
-
+    
         #rk.update(array([z]), HJacobian_at, hx)
         
         #xs.append(rk.x)
@@ -176,13 +191,29 @@ try:
         t1 = t2
         
         #################################################
+        # Flow Update
+        #################################################
+        """
+        latest_motion = flow.get_motion()
+        if latest_motion != None:
+            motions += latest_motion
+            motions[:-LAST_N] = []
+            if all([m < MOTION_THRESH]):
+                # Zero velocities
+                print '!! Stopping velocity'
+                rk.x[3] = 0
+                rk.y[3] = 0
+                
+        """
+
+
+
+        #################################################
         # Prediction Step
         #################################################
         
         # Recieve Control
-        #print 'getting state'
         rk.u = imu.get_latest() - offsetU
-        #print 'got state'
         imu.clear_all()
         
         
@@ -195,9 +226,9 @@ try:
         
         # Prediction Step (run my own)
         rk = predict_State(rk, diff)
-
+        
         # Predict with filterpu
-
+        
         #rk.B = array([[1/2*diff*diff, 0,             0],
         #              [0,             1/2*diff*diff, 0],
         #              [0,             0,             diff]]);
@@ -215,11 +246,7 @@ try:
         # Each item in the list is a dictionary 
         # {'bearing': degrees, 'tag': id}
         # If a measurement is not ready, this returns []
-        measurements = measure.get_measurement()
-        
-        # Data Formal:
-        # z = [ range; theta; markerID]
-        # First two are used in measurement, last one in calculation of h(x) etc. 
+        measurements = []# measure.get_measurement()
         
         for zm in measurements:
             z = np.array([zm['bearing']])
@@ -232,25 +259,14 @@ try:
         printStuff(rk, measurements)
         #print i, measurements
         i += 1
-        #printMeasurement(measurements)
-        #################################################
-        # Perform Smoothing
-        #################################################
-
-
         
-
-
-        # Debugging stuff
-        # i = i+1
-
-
-
+        
         time.sleep(dt)
 
 except KeyboardInterrupt, SystemExit:
    print 'Shutting down'
    imu.kill()
-   measure.kill()
+   flow.kill()
+   #measure.kill()
    time.sleep(1)
    exit(1)
