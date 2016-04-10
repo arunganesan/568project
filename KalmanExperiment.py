@@ -50,19 +50,20 @@ def printStuff(rk, measurements, zerod):
 
 def printMatlab (rk, zerod, filename):
     ofile = open(filename, 'a')
-    
     z = 1
     if not zerod: z = 0
-    data = [rk.x[0][0], rk.x[1][0], rk.x[2][0], rk.P[0,0], rk.P[0,1], rk.P[0,2], rk.P[1,0], rk.P[1,1], rk.P[1,2], rk.P[2,0], rk.P[2,1], rk.P[2,2], z]
+    data = [rk.x[0][0], rk.x[1][0], rk.x[2][0], rk.P[0,0], rk.P[0,1], rk.P[0,2],\
+            rk.P[1,0], rk.P[1,1], rk.P[1,2], rk.P[2,0], rk.P[2,1], rk.P[2,2], z]
     ofile.write('\t'.join(['{}'.format(d) for d in data]) + '\n')
     ofile.close()
 
 def HJacobian_at(x, landmarkPosition):
     """ compute Jacobian of H matrix for state x """
-   
+    
     dx = landmarkPosition[0] - x[0]
     dy = landmarkPosition[1] - x[1]
     q  = dx**2 + dy**2
+    
     # For when we add range again!
     # H  =  np.array ([[-dx/sqrt(q), -dy/sqrt(q),  0, ],
     #                  [ dy/q      , -dx/q      , -1, ]]) 

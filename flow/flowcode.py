@@ -58,7 +58,8 @@ class Flow:
     output.set_conn(child_conn)
     while True:
       try:
-        camera.resolution = (640, 480)
+        #camera.resolution = (640, 480)
+        camera.resolution = (200, 150)
         #camera.resolution = (240, 160)
         camera.start_recording('/dev/null', format='h264', motion_output=output)
         camera.wait_recording(1)
