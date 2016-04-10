@@ -7,8 +7,8 @@ def get_angle (row, col): # row/col pixel values of pixel
   HorizontalView = 53.50 # degrees 
   VerticalView = 41.41 # degrees
   
-  Cols = 640; #240; #640; #2592.0
-  Rows = 480; #160; #480; #1944.0
+  Cols = 200; #640; #240; #640; #2592.0
+  Rows = 150; #480; #160; #480; #1944.0
   SensorWidth = 3.76 # mm
   SensorHeight = 2.74
   

@@ -24,8 +24,9 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-x', type=float, default=0.889)
 parser.add_argument('-y', type=float, default=0.8509)
-parser.add_argument('-theta', type=float, default=0)
-parser.add_argument('-negativegyro', action='store_true')
+parser.add_argument('--theta', type=float, default=0)
+parser.add_argument('--debug', action='store_true')
+parser.add_argument('--negativegyro', action='store_true')
 args = parser.parse_args()
 
 PREDFILE = 'runs/onlypred.txt'
@@ -46,28 +47,6 @@ def printStuff(rk, measurements, zerod):
     fmtstring = 'X={:7.3f}  Y={:7.3f}  TH={:7.3f} => {:7.3f}  [{:3s}]  Velocity={:7.3f} z={}'
     print fmtstring.format(rk.x[0][0], rk.x[1][0], rk.x[2][0],  math.degrees(rk.x[2]), zerod_str, velocity_Y, ids)
     
-    # Printing for Matlab
-
-    #print measurements
-    #print rk.P
-    #print 'K()'
-    #print rk.K
-    
-    #print rk.x
-    #print rk.x.shape
-    #print rk.x[0][0]
-    #print rk.x[1][0]
-    #print rk.x[2]
-    
-    #fmtstring = 'X={:7.3f}  Y={:7.3f}  TH={:7.3f}  [{:5s}]  Velocity={:7.3f}'
-    #print fmtstring.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y)
-
-    
-    
-    #print 'X={0:03,.3}, Y={1:03,.3}, TH={2:03,.3} Zerod={3:03}, Velocity_Y={4:03,.3}'.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y)
-    #print math.degrees(rk.x[2])
-    #print rk.u[1], rk.u[1]
-
 
 def printMatlab (rk, zerod, filename):
     ofile = open(filename, 'a')
@@ -211,8 +190,8 @@ VEL_DECAY = 0# 0.75    # Reduce the velocity by this factor if we detect no moti
                     # in the optical flow
 motions = []
 
-# Test IMU
-num = 5
+# Get offset of IMU
+num = 10
 u = imu.get_latest()
 for i in range(0,num-1):
     u += imu.get_latest()
@@ -220,13 +199,6 @@ for i in range(0,num-1):
 
 u = u/num
 offsetU = u
-
-#while True:
-#    u = imu.getControlInput() - offsetU
-#    a = u[0]*.001*9.81
-#    b = u[1]*.001*9.81
-#    c = u[2]*.001*9.81
-#    print a, b, c
 
 # Evolve the state forever 
 t1 = time.time()
@@ -238,19 +210,6 @@ i = 1;
 sys.stderr.write('Started!\n')
 try:
     while True:
-        # print i
-        #z = radar.get_range()
-        
-        #track.append((radar.pos, radar.vel, radar.alt))
-         
-        #rk.update(array([z]), HJacobian_at, hx)
-        
-        #xs.append(rk.x)
-        #rk.predict()
-        #xs = asarray(xs)
-        #track = asarray(track)
-        #time = np.arange(0, len(xs)*dt, dt)
-        
         # Track timestep
         t2 = time.time()
         diff = t2-t1
@@ -287,14 +246,12 @@ try:
         velocity_Y += diff*rk.u[0]
         
         rk.u[0] = velocity_Y
-
         rk2.u[0] = velocity_Y
 
        
         # Change process matrix accordingly
         v = velocity_Y #float(rk.u[0])
         w = math.radians(float(rk.u[1]))
-        #th = math.radians(rk.x[2])
         th = rk.x[2]
         
         rk.F = array(   [[1, 0, v/w*(-math.cos(th)+math.cos(th + w*diff))],
@@ -319,14 +276,6 @@ try:
         rk = predict_State(rk, diff)
         rk2 = predict_State(rk2, diff)
         
-        # Predict with filterpu
-        
-        #rk.B = array([[1/2*diff*diff, 0,             0],
-        #              [0,             1/2*diff*diff, 0],
-        #              [0,             0,             diff]]);
-
-        #rk.predict(u);
-        #rk.x[2] = rk.u[2]
 
         #################################################
         # Update Step
@@ -351,10 +300,12 @@ try:
         
         
         #print velocity_Y
-        #printStuff(rk, measurements, zerod)
-        sys.stderr.write('Angle: {}\n'.format(math.degrees(rk.x[2])))
-        printMatlab(rk, zerod, PREDUPDA)
-        printMatlab(rk2, zerod, PREDFILE)
+        if args.debug:
+            printStuff(rk, measurements, zerod)
+        else:
+            sys.stderr.write('Angle: {}\n'.format(math.degrees(rk.x[2])))
+            printMatlab(rk, zerod, PREDUPDA)
+            printMatlab(rk2, zerod, PREDFILE)
         #print i, measurements
         i += 1
         
