@@ -25,7 +25,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-x', type=float, default=0.889)
 parser.add_argument('-y', type=float, default=0.8509)
 parser.add_argument('-theta', type=float, default=0)
+parser.add_argument('-negativegyro', action='store_true')
 args = parser.parse_args()
+
+PREDFILE = 'runs/onlypred.txt'
+PREDUPDA = 'runs/predupdate.txt'
+open(PREDFILE, 'w').close()
+open(PREDUPDA, 'w').close()
 
 # Measurement model from Probabilistic Robotics, page 207
 def printStuff(rk, measurements, zerod):
@@ -63,10 +69,14 @@ def printStuff(rk, measurements, zerod):
     #print rk.u[1], rk.u[1]
 
 
-def printMatlab (rk, zerod):
+def printMatlab (rk, zerod, filename):
+    ofile = open(filename, 'a')
+    
     z = 1
     if not zerod: z = 0
-    print rk.x[0][0], rk.x[1][0], rk.x[2][0], rk.P[0,0], rk.P[0,1], rk.P[0,2], rk.P[1,0], rk.P[1,1], rk.P[1,2], rk.P[2,0], rk.P[2,1], rk.P[2,2], z
+    data = [rk.x[0][0], rk.x[1][0], rk.x[2][0], rk.P[0,0], rk.P[0,1], rk.P[0,2], rk.P[1,0], rk.P[1,1], rk.P[1,2], rk.P[2,0], rk.P[2,1], rk.P[2,2], z]
+    ofile.write('\t'.join(['{}'.format(d) for d in data]) + '\n')
+    ofile.close()
 
 def HJacobian_at(x, landmarkPosition):
     """ compute Jacobian of H matrix for state x """
@@ -129,10 +139,11 @@ from measure import *
 from flow import *
 
 # Accelerometer/Gyroscope max Update rate = 100 Hz(?)
-dt = 0 # TBD
+dt = 0.01 # TBD
 
 # Initialize Extended Kalman Filter
 rk = ExtendedKalmanFilter(dim_x=3, dim_z=1)
+rk2 = ExtendedKalmanFilter(dim_x=3, dim_z=1)
 
 # Initialize IMU
 imu = IMU()
@@ -154,6 +165,7 @@ flow = Flow()
 #rk.x = array([0, 0 , 0]) #x, y, theta, v_x, v_y
 
 rk.x = array([[args.x, args.y, args.theta]]).T #x, y, theta, v_x, v_y
+rk2.x = array([[args.x, args.y, args.theta]]).T #x, y, theta, v_x, v_y
 """
 rk.F = array([[1, 0, 0],
               [0, 1, 0],
@@ -165,14 +177,18 @@ range_std = 0.005 # metersi
 range_angle = 1
 april_angle = 1
 
+
+
 # Motion Noise
 #rk.Q = np.diag([range_std**2, range_std**2, range_std**2 ])
 
 rk.Q = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
+rk2.Q = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
 
 # Measurement Noise
 #rk.R = np.diag([range_std**2, range_std**2])
 rk.R = np.array([[math.radians(april_angle)**2]])
+rk2.R = np.array([[math.radians(april_angle)**2]])
 
 # This might imply correlation which in our case is unfounded
 #rk.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.1)
@@ -181,6 +197,7 @@ rk.R = np.array([[math.radians(april_angle)**2]])
 # For some reason, Sigma is called P here....
 #rk.P = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
 rk.P = np.diag([0.01**2, 0.01**2, math.radians(1)**2])
+rk2.P = np.diag([0.01**2, 0.01**2, math.radians(1)**2])
 
 # Flow related constants
 MOTION_THRESH = 10  # The number of pixels that have high motion must be at 
@@ -190,6 +207,8 @@ LAST_N = 3 #5         # The last number of frames with no motion has to exceed
                     # this value before we consider it to be "stopped". If the 
                     # framerate is low, this value needs to be lower. 
 
+VEL_DECAY = 0.75    # Reduce the velocity by this factor if we detect no motion 
+                    # in the optical flow
 motions = []
 
 # Test IMU
@@ -248,8 +267,8 @@ try:
             motions += latest_motion
             motions[:-LAST_N] = []
             if all([m < MOTION_THRESH for m in motions]):
-                # Zero velocities
-                velocity_Y = 0
+                # Reducing velocities
+                velocity_Y = velocity_Y * VEL_DECAY
                 zerod = True
 
 
@@ -258,12 +277,20 @@ try:
         #################################################
         
         # Recieve Control
-        rk.u = imu.get_latest() - offsetU
+        motion = imu.get_latest() - offsetU
         imu.clear_all()
+
+        if args.negativegyro: 
+            motion[1] = -1*motion[1]
+        rk.u = motion
+        rk2.u = motion
         velocity_Y += diff*rk.u[0]
-        rk.u[0] = velocity_Y
-        rk.u[1] = -1*rk.u[1]
         
+        rk.u[0] = velocity_Y
+
+        rk2.u[0] = velocity_Y
+
+       
         # Change process matrix accordingly
         v = velocity_Y #float(rk.u[0])
         w = math.radians(float(rk.u[1]))
@@ -274,6 +301,13 @@ try:
                          [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
                          [0, 0, 1]])
         
+        th = rk2.x[2]
+        
+        rk2.F = array(   [[1, 0, v/w*(-math.cos(th)+math.cos(th + w*diff))],
+                         [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
+                         [0, 0, 1]])
+        
+
         """
         rk.F = array([[1, 0, 0, diff,  0],
                   [0, 1, 0,  0, diff],
@@ -283,6 +317,7 @@ try:
         """
         ## Prediction Step (run my own)
         rk = predict_State(rk, diff)
+        rk2 = predict_State(rk2, diff)
         
         # Predict with filterpu
         
@@ -317,7 +352,9 @@ try:
         
         #print velocity_Y
         #printStuff(rk, measurements, zerod)
-        printMatlab(rk, zerod)
+        sys.stderr.write('Angle: {}\n'.format(math.degrees(rk.x[2])))
+        printMatlab(rk, zerod, PREDUPDA)
+        printMatlab(rk2, zerod, PREDFILE)
         #print i, measurements
         i += 1
         
