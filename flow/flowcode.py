@@ -52,7 +52,7 @@ class Flow:
    
   def do_motion_detect (self, child_conn):
     import picamera, subprocess, time
-    camera = picamera.PiCamera(framerate=20)
+    camera = picamera.PiCamera(framerate=30)
     
     output = DetectMotion(camera)
     output.set_conn(child_conn)

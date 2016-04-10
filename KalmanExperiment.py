@@ -29,7 +29,16 @@ args = parser.parse_args()
 
 # Measurement model from Probabilistic Robotics, page 207
 def printStuff(rk, measurements, zerod):
-    print rk.x[0], rk.x[1], rk.x[2], rk.x[3], rk.x[4], measurements, zerod
+    #print rk.x[0], rk.x[1], rk.x[2], rk.x[3], rk.x[4], measurements, zerod
+    
+    if not zerod:
+        zerod_str = ''
+    else: zerod_str = '!!!'
+
+    print 'X={:7.3f}  Y={:7.3f}  TH={:7.3f}  [{:5s}]  Velocity={:7.3f}'.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y)
+
+    #print 'X={0:03,.3}, Y={1:03,.3}, TH={2:03,.3} Zerod={3:03}, Velocity_Y={4:03,.3}'.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y)
+    #print math.degrees(rk.x[2])
     #print rk.u[1], rk.u[1]
 
 def HJacobian_at(x, landmarkPosition):
@@ -58,16 +67,22 @@ def hx(x, landmarkPosition):
     return h
 
 def predict_State(rk, dt):
-    a_x   = rk.u[0];
-    a_y   = rk.u[1];
-    omega = rk.u[2];
     
     # Account for zero velocities
-    rk.x = np.dot(rk.F, rk.x) + np.array([[.5*a_x*dt*dt, .5*a_y*dt*dt, omega*dt/14.375, a_x*dt, a_y*dt]]).T
+    #rk.x = np.dot(rk.F, rk.x) + np.array([[.5*a_x*dt*dt, .5*a_y*dt*dt, omega*dt/14.375, a_x*dt, a_y*dt]]).T
+    v = velocity_Y #rk.u[0]
+    w = math.radians(rk.u[1])
+    #th = math.radians(rk.x[2])
+    th = rk.x[2]
+    
+    rk.x[0] = rk.x[0] + -v/w*math.sin(th) + v/w*math.sin(th + w*dt)
+    rk.x[1] = rk.x[1] + v/w*math.cos(th) - v/w * math.cos(th + w*dt)
+    rk.x[2] = minimizedAngle(th + w*diff)
+    
     #print a_y, dt
     #rk.x[0] = rk.x[0] + .5*a_x*dt*dt;
     #rk.x[1] = rk.x[1] + .5*a_y*dt*dt;
-    rk.x[2] = omega;
+    #rk.x[2] = omega;
     
     rk.P = np.dot(np.dot(rk.F, rk.P), rk.F.T) + rk.Q
     return rk 
@@ -89,7 +104,7 @@ from flow import *
 dt = .01 # TBD
 
 # Initialize Extended Kalman Filter
-rk = ExtendedKalmanFilter(dim_x=5, dim_z=1)
+rk = ExtendedKalmanFilter(dim_x=3, dim_z=1)
 
 # Initialize IMU
 imu = IMU()
@@ -97,6 +112,9 @@ while True:
     l = imu.get_latest()
     imu.clear_all()
     if l != None: break
+
+velocity_Y = 0
+omega_Y = 0
 
 # Initialize measurement
 #measure = Measure(debug_mode=False)
@@ -107,7 +125,7 @@ flow = Flow()
 # Make an imperfect sta rting guess
 #rk.x = array([0, 0 , 0]) #x, y, theta, v_x, v_y
 
-rk.x = array([[args.x, args.y, args.theta, 0, 0]]).T #x, y, theta, v_x, v_y
+rk.x = array([[args.x, args.y, args.theta]]).T #x, y, theta, v_x, v_y
 """
 rk.F = array([[1, 0, 0],
               [0, 1, 0],
@@ -121,7 +139,7 @@ range_angle = 5
 # Motion Noise
 #rk.Q = np.diag([range_std**2, range_std**2, range_std**2 ])
 
-rk.Q = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2, 1, 1])
+rk.Q = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
 
 # Measurement Noise
 #rk.R = np.diag([range_std**2, range_std**2])
@@ -133,21 +151,21 @@ rk.R = np.array([[math.radians(range_angle)**2]])
 
 # For some reason, Sigma is called P here....
 #rk.P = np.diag([range_std**2, range_std**2, range_std**2 ])
-rk.P = np.diag([range_std**2, range_std**2, range_std**2,  range_std**2, range_std**2])
+rk.P = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
 
 
 # Flow related constants
 MOTION_THRESH = 10  # The number of pixels that have high motion must be at 
                     # least this to be considered a "motion"
 
-LAST_N = 10         # The last number of frames with no motion has to exceed 
+LAST_N = 3 #5         # The last number of frames with no motion has to exceed 
                     # this value before we consider it to be "stopped". If the 
                     # framerate is low, this value needs to be lower. 
 
 motions = []
 
 # Test IMU
-num = 10
+num = 5
 u = imu.get_latest()
 for i in range(0,num-1):
     u += imu.get_latest()
@@ -184,15 +202,17 @@ try:
         #xs = asarray(xs)
         #track = asarray(track)
         #time = np.arange(0, len(xs)*dt, dt)
-
+        
         # Track timestep
         t2 = time.time()
         diff = t2-t1
         t1 = t2
         
+        
         #################################################
         # Flow Update
         #################################################
+        
         latest_motion = flow.get_motion()
         zerod = False
         if latest_motion != None:
@@ -200,10 +220,8 @@ try:
             motions[:-LAST_N] = []
             if all([m < MOTION_THRESH for m in motions]):
                 # Zero velocities
-                rk.x[3] = 0
-                rk.x[4] = 0
+                velocity_Y = 0
                 zerod = True
-
 
 
         #################################################
@@ -213,15 +231,26 @@ try:
         # Recieve Control
         rk.u = imu.get_latest() - offsetU
         imu.clear_all()
-        
+        velocity_Y += diff*rk.u[0]
+        rk.u[0] = velocity_Y
         
         # Change process matrix accordingly
+        v = velocity_Y #float(rk.u[0])
+        w = math.radians(float(rk.u[1]))
+        #th = math.radians(rk.x[2])
+        th = rk.x[2]
+
+        rk.F = array(   [[1, 0, v/w*(-math.cos(th)+math.cos(th + w*diff))],
+                         [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
+                         [0, 0, 1]])
+        
+        """
         rk.F = array([[1, 0, 0, diff,  0],
                   [0, 1, 0,  0, diff],
                   [0, 0, 1,  0, 0],
                   [0, 0, 0,  1, 0],
                   [0, 0, 0,  0, 1]]) 
-        
+        """
         # Prediction Step (run my own)
         rk = predict_State(rk, diff)
         
@@ -254,6 +283,7 @@ try:
             z[0] = math.radians(z[0])
             #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
         
+        #print velocity_Y
         printStuff(rk, measurements, zerod)
         #print i, measurements
         i += 1
