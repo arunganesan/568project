@@ -2,7 +2,6 @@
 
 class Measure:
   def __init__ (self, debug_mode=False):
-    import picamera
     from multiprocessing import Pipe, Process
     self.measurements = []
     self.debug_mode = debug_mode

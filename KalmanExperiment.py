@@ -35,7 +35,8 @@ def printStuff(rk, measurements, zerod):
         zerod_str = ''
     else: zerod_str = '!!!'
 
-    print 'X={:7.3f}  Y={:7.3f}  TH={:7.3f}  [{:5s}]  Velocity={:7.3f}'.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y)
+    fmtstring = 'X={:7.3f}  Y={:7.3f}  TH={:7.3f}  [{:5s}]  Velocity={:7.3f} Measurements: {}'
+    print fmtstring.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y, measurements)
 
     #print 'X={0:03,.3}, Y={1:03,.3}, TH={2:03,.3} Zerod={3:03}, Velocity_Y={4:03,.3}'.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y)
     #print math.degrees(rk.x[2])
@@ -97,7 +98,7 @@ def minimizedAngle(theta):
     return theta
 
 from imu import *
-#from measure import *
+from measure import *
 from flow import *
 
 # Accelerometer/Gyroscope max Update rate = 100 Hz(?)
@@ -117,7 +118,7 @@ velocity_Y = 0
 omega_Y = 0
 
 # Initialize measurement
-#measure = Measure(debug_mode=False)
+measure = Measure(debug_mode=False)
 
 # Initialize flow detection
 flow = Flow()
@@ -273,7 +274,7 @@ try:
         # Each item in the list is a dictionary 
         # {'bearing': degrees, 'tag': id}
         # If a measurement is not ready, this returns []
-        measurements = []# measure.get_measurement()
+        measurements =  measure.get_measurement()
         
         for zm in measurements:
             z = np.array([zm['bearing']])
@@ -281,7 +282,7 @@ try:
             landmarkPosition = get_landmark(markerId)
             
             z[0] = math.radians(z[0])
-            #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
+            rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
         
         #print velocity_Y
         printStuff(rk, measurements, zerod)
@@ -295,6 +296,6 @@ except KeyboardInterrupt, SystemExit:
    print 'Shutting down'
    imu.kill()
    flow.kill()
-   #measure.kill()
+   measure.kill()
    time.sleep(1)
    exit(1)

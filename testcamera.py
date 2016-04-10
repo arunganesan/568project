@@ -8,9 +8,9 @@ if __name__ == '__main__':
   m = Measure()
   f = Flow()
 
-  for i in range(30):
+  for i in range(300):
     measurements = m.get_measurement()
-    motions = m.get_motions()
+    motions = f.get_motion()
     print 'T={0}, Measurements={1}, Motions={2}'.format(i, measurements, motions)
     time.sleep(0.25)
   m.kill()
