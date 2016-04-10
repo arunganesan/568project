@@ -207,7 +207,7 @@ LAST_N = 3 #5         # The last number of frames with no motion has to exceed
                     # this value before we consider it to be "stopped". If the 
                     # framerate is low, this value needs to be lower. 
 
-VEL_DECAY = 0.75    # Reduce the velocity by this factor if we detect no motion 
+VEL_DECAY = 0# 0.75    # Reduce the velocity by this factor if we detect no motion 
                     # in the optical flow
 motions = []
 
