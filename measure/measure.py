@@ -33,21 +33,20 @@ class Measure:
   def do_measure (self, child_conn):
     import picamera, subprocess, time
     from image_to_angle import get_angle
-    camera = picamera.PiCamera()
+    #camera = picamera.PiCamera()
     
     while (True):
       try:
           measurements = []
           
           # 1. Get camera image 
-          if self.debug_mode:
-              filename = 'image-{}.jpg'.format(int(time.time()))
-          else:
-              filename = 'image.jpg'
-          #print 'capturing to {}'.format(filename)
-          #print 'initted'
-          camera.capture(filename)
-          #print 'captured'
+          # The flowcode will take pictures for us
+          #if self.debug_mode:
+          #    filename = 'image-{}.jpg'.format(int(time.time()))
+          #else:
+          #    filename = 'image.jpg'
+          #camera.capture(filename)
+          filename = 'image.jpg'
           
           # 2. Run april tags
           cmd = './measure/april -d {}'.format(filename).split()
@@ -72,7 +71,7 @@ class Measure:
             if s == 'STOP': break
       except KeyboardInterrupt:
           break
-    camera.close()
+    #camera.close()
   
 if __name__ == '__main__':
   import time

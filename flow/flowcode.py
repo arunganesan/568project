@@ -61,8 +61,9 @@ class Flow:
         camera.resolution = (640, 480)
         camera.start_recording('/dev/null', format='h264', motion_output=output)
         camera.wait_recording(1)
-        t = int(time.time())
-        name = '{}-image.jpg'.format(t)
+        #t = int(time.time())
+        #name = '{}-image.jpg'.format(t)
+        name = 'image.jpg'
         camera.capture(name, use_video_port=True)
         camera.stop_recording()
 
