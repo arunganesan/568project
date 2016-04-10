@@ -59,6 +59,7 @@ class Flow:
     while True:
       try:
         camera.resolution = (640, 480)
+        #camera.resolution = (240, 160)
         camera.start_recording('/dev/null', format='h264', motion_output=output)
         camera.wait_recording(1)
         #t = int(time.time())

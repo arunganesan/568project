@@ -55,7 +55,7 @@ class ExtendedKalmanFilter(object):
         self._R = eye(dim_z)       # state uncertainty
         self._Q = eye(dim_x)       # process uncertainty
         self._y = zeros((dim_z, 1))
-
+        self._K = 0
         # identity matrix. Do not alter this.
         self._I = np.eye(dim_x)
 
@@ -118,7 +118,7 @@ class ExtendedKalmanFilter(object):
         # update step
         S = dot3(H, P, H.T) + R
         K = dot3(P, H.T, linalg.inv (S))
-
+        
         self._x = x + dot(K, (z - Hx(x, *hx_args)))
 
         I_KH = self._I - dot(K, H)
@@ -189,6 +189,7 @@ class ExtendedKalmanFilter(object):
 
         S = dot3(H, P, H.T) + R
         
+        """
         print ('H is:')
         print (H.shape)
         print (H)
@@ -200,13 +201,15 @@ class ExtendedKalmanFilter(object):
         print(S.shape)
         print (S)
         print(P.shape)
+        """
         
         K = dot3(P, H.T, linalg.inv (S))
-
+        self._K = K
         hx =  Hx(x, *hx_args)
 
         y = residual(z, hx)
         
+        """
         print ('in ekf')
         print (x.shape)
         print (y.shape)
@@ -216,7 +219,8 @@ class ExtendedKalmanFilter(object):
         self._x = x + dot(K, y)
         print (self._x.shape)
         print ('done')
-
+        """
+        
         I_KH = self._I - dot(K, H)
         self._P = dot3(I_KH, P, I_KH.T) + dot3(K, R, K.T)
 

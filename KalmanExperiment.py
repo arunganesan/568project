@@ -22,8 +22,8 @@ from math import sqrt
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('-x', type=float, default=0)
-parser.add_argument('-y', type=float, default=0)
+parser.add_argument('-x', type=float, default=0.889)
+parser.add_argument('-y', type=float, default=0.8509)
 parser.add_argument('-theta', type=float, default=0)
 args = parser.parse_args()
 
@@ -33,14 +33,40 @@ def printStuff(rk, measurements, zerod):
     
     if not zerod:
         zerod_str = ''
-    else: zerod_str = '!!!'
+    else: zerod_str = 'o~o'
+    
+    ids = [m['id'] for m in measurements]
+    measures = [m['bearing'] for m in measurements]
+    fmtstring = 'X={:7.3f}  Y={:7.3f}  TH={:7.3f} => {:7.3f}  [{:3s}]  Velocity={:7.3f} z={}'
+    print fmtstring.format(rk.x[0][0], rk.x[1][0], rk.x[2][0],  math.degrees(rk.x[2]), zerod_str, velocity_Y, ids)
+    
+    # Printing for Matlab
 
-    fmtstring = 'X={:7.3f}  Y={:7.3f}  TH={:7.3f}  [{:5s}]  Velocity={:7.3f} Measurements: {}'
-    print fmtstring.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y, measurements)
+    #print measurements
+    #print rk.P
+    #print 'K()'
+    #print rk.K
+    
+    #print rk.x
+    #print rk.x.shape
+    #print rk.x[0][0]
+    #print rk.x[1][0]
+    #print rk.x[2]
+    
+    #fmtstring = 'X={:7.3f}  Y={:7.3f}  TH={:7.3f}  [{:5s}]  Velocity={:7.3f}'
+    #print fmtstring.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y)
 
+    
+    
     #print 'X={0:03,.3}, Y={1:03,.3}, TH={2:03,.3} Zerod={3:03}, Velocity_Y={4:03,.3}'.format(rk.x[0][0], rk.x[1][0], math.degrees(rk.x[2]), zerod_str, velocity_Y)
     #print math.degrees(rk.x[2])
     #print rk.u[1], rk.u[1]
+
+
+def printMatlab (rk, zerod):
+    z = 1
+    if not zerod: z = 0
+    print rk.x[0][0], rk.x[1][0], rk.x[2][0], rk.P[0,0], rk.P[0,1], rk.P[0,2], rk.P[1,0], rk.P[1,1], rk.P[1,2], rk.P[2,0], rk.P[2,1], rk.P[2,2], z
 
 def HJacobian_at(x, landmarkPosition):
     """ compute Jacobian of H matrix for state x """
@@ -48,6 +74,7 @@ def HJacobian_at(x, landmarkPosition):
     dx = landmarkPosition[0] - x[0]
     dy = landmarkPosition[1] - x[1]
     q  = dx**2 + dy**2
+    # For when we add range again!
     # H  =  np.array ([[-dx/sqrt(q), -dy/sqrt(q),  0, ],
     #                  [ dy/q      , -dx/q      , -1, ]]) 
     
@@ -60,8 +87,11 @@ def hx(x, landmarkPosition):
     dx = landmarkPosition[0] - x[0]
     dy = landmarkPosition[1] - x[1]
     q  = dx**2 + dy**2 
+       
     
-    h = np.array([[minimizedAngle(math.atan2(dy, dx) - x[2])]])
+    h = np.array([minimizedAngle(math.atan2(dy, dx) - x[2])])
+    #print 'Expected = {}'.format(math.degrees(h))
+    
     return h
 
 def predict_State(rk, dt):
@@ -75,7 +105,7 @@ def predict_State(rk, dt):
     
     rk.x[0] = rk.x[0] + -v/w*math.sin(th) + v/w*math.sin(th + w*dt)
     rk.x[1] = rk.x[1] + v/w*math.cos(th) - v/w * math.cos(th + w*dt)
-    rk.x[2] = minimizedAngle(th + w*diff)
+    rk.x[2] = minimizedAngle(th + w*dt)
     
     #print a_y, dt
     #rk.x[0] = rk.x[0] + .5*a_x*dt*dt;
@@ -83,7 +113,7 @@ def predict_State(rk, dt):
     #rk.x[2] = omega;
     
     rk.P = np.dot(np.dot(rk.F, rk.P), rk.F.T) + rk.Q
-    return rk 
+    return rk
 
 def minimizedAngle(theta):
     while theta>math.pi:
@@ -99,7 +129,7 @@ from measure import *
 from flow import *
 
 # Accelerometer/Gyroscope max Update rate = 100 Hz(?)
-dt = .01 # TBD
+dt = 0 # TBD
 
 # Initialize Extended Kalman Filter
 rk = ExtendedKalmanFilter(dim_x=3, dim_z=1)
@@ -131,8 +161,9 @@ rk.F = array([[1, 0, 0],
 """
 
 # Noise Parameters (will require tuning)
-range_std = .01 # metersi
-range_angle = 5 
+range_std = 0.005 # metersi
+range_angle = 1
+april_angle = 1
 
 # Motion Noise
 #rk.Q = np.diag([range_std**2, range_std**2, range_std**2 ])
@@ -141,16 +172,15 @@ rk.Q = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
 
 # Measurement Noise
 #rk.R = np.diag([range_std**2, range_std**2])
-rk.R = np.array([[math.radians(range_angle)**2]])
+rk.R = np.array([[math.radians(april_angle)**2]])
 
 # This might imply correlation which in our case is unfounded
 #rk.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.1)
 #rk.Q[2,2] = 0.1
 
 # For some reason, Sigma is called P here....
-#rk.P = np.diag([range_std**2, range_std**2, range_std**2 ])
-rk.P = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
-
+#rk.P = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
+rk.P = np.diag([0.01**2, 0.01**2, math.radians(1)**2])
 
 # Flow related constants
 MOTION_THRESH = 10  # The number of pixels that have high motion must be at 
@@ -186,6 +216,7 @@ xs, track = [], []
 i = 1;
 
 
+sys.stderr.write('Started!\n')
 try:
     while True:
         # print i
@@ -231,13 +262,14 @@ try:
         imu.clear_all()
         velocity_Y += diff*rk.u[0]
         rk.u[0] = velocity_Y
+        rk.u[1] = -1*rk.u[1]
         
         # Change process matrix accordingly
         v = velocity_Y #float(rk.u[0])
         w = math.radians(float(rk.u[1]))
         #th = math.radians(rk.x[2])
         th = rk.x[2]
-
+        
         rk.F = array(   [[1, 0, v/w*(-math.cos(th)+math.cos(th + w*diff))],
                          [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
                          [0, 0, 1]])
@@ -249,7 +281,7 @@ try:
                   [0, 0, 0,  1, 0],
                   [0, 0, 0,  0, 1]]) 
         """
-        # Prediction Step (run my own)
+        ## Prediction Step (run my own)
         rk = predict_State(rk, diff)
         
         # Predict with filterpu
@@ -280,10 +312,12 @@ try:
             
             z[0] = math.radians(z[0])
             rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
+            
         
-
+        
         #print velocity_Y
-        printStuff(rk, measurements, zerod)
+        #printStuff(rk, measurements, zerod)
+        printMatlab(rk, zerod)
         #print i, measurements
         i += 1
         
@@ -291,7 +325,7 @@ try:
         time.sleep(dt)
 
 except KeyboardInterrupt, SystemExit:
-   print 'Shutting down'
+   sys.stderr.write( 'Shutting down')
    imu.kill()
    flow.kill()
    measure.kill()
