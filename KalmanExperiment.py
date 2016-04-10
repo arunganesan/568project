@@ -51,8 +51,7 @@ def HJacobian_at(x, landmarkPosition):
     # H  =  np.array ([[-dx/sqrt(q), -dy/sqrt(q),  0, ],
     #                  [ dy/q      , -dx/q      , -1, ]]) 
     
-    H  =  np.array ([[ (dy/q)[0]      , (-dx/q)[0]      , -1,  0,  0]]) 
-    # print H.shape
+    H  =  np.array ([[ (dy/q)[0]      , (-dx/q)[0]      , -1]]) 
     return H
 
 # Measurement model from Probabilistic Robotics, page 207
@@ -62,9 +61,7 @@ def hx(x, landmarkPosition):
     dy = landmarkPosition[1] - x[1]
     q  = dx**2 + dy**2 
     
-    rad = math.radians(x[2])
-    
-    h = np.array([[minimizedAngle(math.atan2(dy, dx) - rad)]])
+    h = np.array([[minimizedAngle(math.atan2(dy, dx) - x[2])]])
     return h
 
 def predict_State(rk, dt):
@@ -195,7 +192,7 @@ try:
         #z = radar.get_range()
         
         #track.append((radar.pos, radar.vel, radar.alt))
-    
+         
         #rk.update(array([z]), HJacobian_at, hx)
         
         #xs.append(rk.x)
@@ -284,6 +281,7 @@ try:
             z[0] = math.radians(z[0])
             rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
         
+
         #print velocity_Y
         printStuff(rk, measurements, zerod)
         #print i, measurements
