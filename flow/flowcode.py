@@ -26,18 +26,18 @@ class Flow:
     self.parent_conn, self.child_conn = Pipe()
     self.p = Process(target=self.do_motion_detect, args=(self.child_conn,))
     self.p.start()
-  
+
   # Send kill command to child process
   def kill (self):
     self.parent_conn.send('STOP')
     #self.parent_conn.recv()
     self.p.join()
-  
+
   def _clear_pipe (self):
     while (self.parent_conn.poll(0.01) != False):
         reading = self.parent_conn.recv()
         self.motions.append(reading)
-     
+
 
   # Checks if pipe has any data
   # If it does return that
@@ -49,32 +49,34 @@ class Flow:
         copy = self.motions
         self.motions = []
         return copy
-   
+
   def do_motion_detect (self, child_conn):
     import picamera, subprocess, time
     camera = picamera.PiCamera(framerate=30)
-    
+
     output = DetectMotion(camera)
     output.set_conn(child_conn)
     while True:
       try:
         camera.resolution = (640, 480)
-        camera.start_recording(
-           '/dev/null', format='h264', motion_output=output)
-        camera.wait_recording(5)
+        camera.start_recording('/dev/null', format='h264', motion_output=output)
+        camera.wait_recording(1)
+        t = int(time.time())
+        name = '{}-image.jpg'.format(t)
+        camera.capture(name, use_video_port=True)
         camera.stop_recording()
-        
+
         if child_conn.poll(0.01):
           s = child_conn.recv()
           if s == 'STOP': break
-      
+
       except KeyboardInterrupt:
           break
     camera.close()
-  
+
 if __name__ == '__main__':
   import time
-  
+
   m = Flow()
   for i in range(300):
     measurements = m.get_motion()
