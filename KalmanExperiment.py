@@ -16,8 +16,7 @@ from filterpy.kalman import ExtendedKalmanFilter
 
 from numpy import eye, array, asarray
 import numpy as np
-import time
-import math
+import time, math, subprocess
 from math import sqrt
 
 import argparse
@@ -117,6 +116,7 @@ def minimizedAngle(theta):
 from imu import *
 from measure import *
 from flow import *
+from joystick import *
 
 # Accelerometer/Gyroscope max Update rate = 100 Hz(?)
 dt = 0.01 # TBD
@@ -124,6 +124,9 @@ dt = 0.01 # TBD
 # Initialize Extended Kalman Filter
 rk = ExtendedKalmanFilter(dim_x=3, dim_z=1)
 rk2 = ExtendedKalmanFilter(dim_x=3, dim_z=1)
+
+# Set up joystick
+joystick = Joystick()
 
 # Initialize IMU
 imu = IMU()
@@ -318,5 +321,6 @@ except KeyboardInterrupt, SystemExit:
    imu.kill()
    flow.kill()
    measure.kill()
+   joystick.kill()
    time.sleep(1)
    exit(1)

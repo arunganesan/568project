@@ -13,9 +13,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--fixed_power', type=float, default=.70)
 parser.add_argument('--useFixedPower', type=int, default=1)
 args = parser.parse_args()
-print args
 
 # Re-direct our output to standard error, we need to ignore standard out to hide some nasty print statements from pygame
+stdout = sys.stdout
 sys.stdout = sys.stderr
 
 # Setup the PicoBorg Reverse
@@ -218,12 +218,12 @@ try:
         # Wait for the interval period
         time.sleep(interval)
         if hadEvent: 
-            print velocity
+            stdout.write('{}\r\n'.format(velocity))
             nomotion_count = 0
         else:
             nomotion_count += 1
             if nomotion_count > MOTION_THRESH:
-                print 0
+                stdout.write('0\r\n')
                 nomotion_count = 0
     # Disable all drives
     PBR.MotorsOff()
