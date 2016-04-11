@@ -10,7 +10,7 @@ sock = None
 def init ():
   sock = socket.socket(socket.AF_INET, # Internet
                      socket.SOCK_DGRAM) # UDP
- 
+  return sock 
 
-def send_message (msg):
+def send_message (sock, msg):
   sock.sendto(msg, (UDP_IP, UDP_PORT))
