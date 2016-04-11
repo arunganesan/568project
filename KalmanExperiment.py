@@ -24,21 +24,19 @@ parser.add_argument('-x', type=float, default=0.889)
 parser.add_argument('-y', type=float, default=0.8509)
 parser.add_argument('--theta', type=float, default=0)
 parser.add_argument('--debug', action='store_true')
-parser.add_argument('--data', type=str)
+parser.add_argument('--usedata', type=str)
 parser.add_argument('--negativegyro', action='store_true')
+
+parser.add_argument('--savefilter', type=str, default='runs/output.txt')
+parser.add_argument('--savedata', type=str, default='runs/data.pkl')
 args = parser.parse_args()
 
-if args.data != None:
+if args.usedata != None:
   print 'Data not yet supported'
   exit(1)
 
-# Output files
-PREDFILE = 'runs/onlypred.txt'
-PREDUPDA = 'runs/predupdate.txt'
-DATAFILE = 'data.pkl'
 # Nulling out the files
-open(PREDFILE, 'w').close()
-open(PREDUPDA, 'w').close()
+open(args.savefilter, 'w').close()
 
 
 
@@ -191,7 +189,6 @@ try:
         if args.negativegyro:
             motion[1] = -1*motion[1]
         rk.u = motion
-        rk2.u = motion
 
         """
         velocity_Y += diff*rk.u[0]
@@ -199,14 +196,12 @@ try:
         # XXX This is not used.
         # We are getting velocity frmo joystick
         rk.u[0] = velocity_Y
-        rk2.u[0] = velocity_Y
         """
         # Receiving joystick control
         joy = joystick.get_latest()
         datadump.append([t2, 'joystick', joy])
         joystick.clear_all()
         rk.u[0] = joy
-        rk2.u[0] = joy
 
         #print joy
         # Change process matrix accordingly
@@ -218,16 +213,11 @@ try:
                          [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
                          [0, 0, 1]])
 
-        th = rk2.x[2]
 
-        rk2.F = array(   [[1, 0, v/w*(-math.cos(th)+math.cos(th + w*diff))],
-                         [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
-                         [0, 0, 1]])
 
 
         ## Prediction Step (run my own)
         rk = predict_State(rk, diff)
-        rk2 = predict_State(rk2, diff)
 
 
         #################################################
@@ -253,9 +243,8 @@ try:
 
 
         # Printing state of filter
-        printStuff(rk2, measurements)
-        printMatlab(rk, PREDUPDA)
-        printMatlab(rk2, PREDFILE)
+        printStuff(rk, measurements)
+        printMatlab(rk, args.savefilter)
 
 
         time.sleep(dt)
@@ -268,8 +257,8 @@ except KeyboardInterrupt, SystemExit:
    joystick.kill()
 
    print 'Saving data file'
-   ofile = open(DATAFILE, 'wb')
-   pickle.dump(dump, ofile)
+   ofile = open(args.savedata, 'wb')
+   pickle.dump(datadump, ofile)
    ofile.close()
 
    time.sleep(1)
