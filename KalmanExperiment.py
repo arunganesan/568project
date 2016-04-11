@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-x', type=float, default=0.889)
 parser.add_argument('-y', type=float, default=0.8509)
 parser.add_argument('--theta', type=float, default=0)
-parser.add_argument('--debug', action='store_true')
+parser.add_argument('--silent', action='store_true')
 parser.add_argument('--usedata', type=str)
 parser.add_argument('--negativegyro', action='store_true')
 
@@ -272,7 +272,8 @@ try:
 
 
         # Printing state of filter
-        printStuff(rk, measurements)
+        if not args.silent:
+            printStuff(rk, measurements)
         printMatlab(rk, args.savefilter)
 
 
