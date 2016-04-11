@@ -23,7 +23,7 @@ parser.add_argument('--usedata', type=str)
 parser.add_argument('--negativegyro', action='store_true')
 
 parser.add_argument('--savefilter', type=str, default='runs/output.txt')
-parser.add_argument('--savedata', type=str, default='runs/data2.pkl')
+parser.add_argument('--savedata', type=str, default='runs/data.pkl')
 args = parser.parse_args()
 
 
@@ -168,9 +168,8 @@ if args.usedata != None:
   t1 = data[0][0]
   offsetU = data[0][2]
   data.pop(0)
-
-#else:
-datadump.append([t1, 'initial', offsetU])
+else:
+  datadump.append([t1, 'initial', offsetU])
 
 try:
     while True:
@@ -192,7 +191,7 @@ try:
         if args.usedata: latest_motion = batch['flow']
         else:
           latest_motion = flow.get_motion();
-        datadump.append([t2,'flow', latest_motion])
+          datadump.append([t2,'flow', latest_motion])
 
         """
         zerod = False
@@ -218,7 +217,7 @@ try:
           motion -= offsetU
           if args.negativegyro: 
             motion[1] = -1*motion[1]
-        datadump.append([t2, 'imu', motion])
+          datadump.append([t2, 'imu', motion])
         
         rk.u = motion
         
@@ -233,7 +232,7 @@ try:
         if args.usedata: joy = batch['joystick']
         else:
           joy = joystick.get_latest(); joystick.clear_all()
-        datadump.append([t2, 'joystick', joy])
+          datadump.append([t2, 'joystick', joy])
 
 
         rk.u[0] = joy
@@ -267,7 +266,7 @@ try:
           else: measurements = batch['measurements']
         else:
           measurements =  measure.get_measurement()
-        datadump.append([t2, 'measurements', measurements])
+          datadump.append([t2, 'measurements', measurements])
 
         for zm in measurements:
             z = np.array([zm['bearing']])
