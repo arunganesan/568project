@@ -1,6 +1,6 @@
 # np.dot(rk.F, rk.xi Require different functions to run (This seems like bad practice) 
 import sys
-import os
+import os, pickle
 sys.path.append('/home/pi/Documents/dev/diddyborg-tabletop/sensors/IMU_LSM303')
 sys.path.append('/home/pi/Documents/dev/diddyborg-tabletop/sensors/IMU_LSM303/Acc-Mag-LSM303-Python')
 sys.path.append('/home/pi/Documents/dev/diddyborg-tabletop/sensors/IMU_LSM303/Gyro-L3GD20-Python')
@@ -25,8 +25,14 @@ parser.add_argument('-x', type=float, default=0.889)
 parser.add_argument('-y', type=float, default=0.8509)
 parser.add_argument('--theta', type=float, default=0)
 parser.add_argument('--debug', action='store_true')
+parser.add_argument('--data', type=str)
 parser.add_argument('--negativegyro', action='store_true')
 args = parser.parse_args()
+
+print args
+exit(1)
+if 'data' in args:
+  print 'Data not yet supported' 
 
 PREDFILE = 'runs/onlypred.txt'
 PREDUPDA = 'runs/predupdate.txt'
@@ -203,6 +209,7 @@ t2 = 0
 xs, track = [], []
 i = 1;
 
+datadump = []
 
 sys.stderr.write('Started!\n')
 try:
@@ -218,6 +225,7 @@ try:
         #################################################
         
         latest_motion = flow.get_motion()
+        datadump.append([t2,'flow', latest_motion])
         """
         zerod = False
         if latest_motion != None:
@@ -236,6 +244,7 @@ try:
         # Recieve Control
         
         motion = imu.get_latest() - offsetU
+        datadump.append([t2, 'imu', latest_motion])
         imu.clear_all()
         
         if args.negativegyro: 
@@ -252,9 +261,11 @@ try:
         """
         # Receiving joystick control
         joy = joystick.get_latest()
+        datadump.append([t2, 'joystick', joy])
         joystick.clear_all()
         rk.u[0] = joy
         rk2.u[0] = joy
+        
         #print joy 
         # Change process matrix accordingly
         v = rk.u[0]
@@ -271,7 +282,7 @@ try:
                          [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
                          [0, 0, 1]])
         
-
+        
         """
         rk.F = array([[1, 0, 0, diff,  0],
                   [0, 1, 0,  0, diff],
@@ -295,6 +306,8 @@ try:
         # {'bearing': degrees, 'tag': id}
         # If a measurement is not ready, this returns []
         measurements =  measure.get_measurement()
+        if len(measurements) != 0:
+          datadump.append([t2, 'measurements', measurements])
         
         for zm in measurements:
             z = np.array([zm['bearing']])
@@ -303,7 +316,7 @@ try:
             
             z[0] = math.radians(z[0])
             rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
-            
+        
         
         
         #print velocity_Y
@@ -325,5 +338,11 @@ except KeyboardInterrupt, SystemExit:
    flow.kill()
    measure.kill()
    joystick.kill()
+   
+   print 'Saving data file'
+   ofile = open('data.pkl', 'wb')
+   pickle.dump(dump, ofile)
+   ofile.close()
+   
    time.sleep(1)
    exit(1)
