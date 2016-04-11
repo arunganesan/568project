@@ -10,11 +10,6 @@ from filterpy.kalman import ExtendedKalmanFilter
 from numpy import eye, array, asarray
 import numpy as np, time, math, subprocess
 
-from imu import *
-from measure import *
-from flow import *
-from joystick import *
-
 from utils import *
 from kalmanfuncs import *
 
@@ -87,7 +82,14 @@ VEL_DECAY = 0    # Reduce the velocity by this factor if we detect no motion
 #####################################
 # INITIALIZATION
 #####################################
-if args.usedata != None:
+# Initializesensors
+if args.usedata == None:
+  from imu import *
+  from measure import *
+  from flow import *
+  from joystick import *
+
+
   # Set up joystick
   joystick = Joystick()
 
@@ -114,6 +116,9 @@ if args.usedata != None:
 
   # Initialize flow detection
   flow = Flow()
+
+
+# Initialize Kalman
 
 # Initialize Extended Kalman Filter
 rk = ExtendedKalmanFilter(dim_x=3, dim_z=1)
@@ -157,7 +162,7 @@ if args.usedata != None:
   ifile.close()
   
   first_batch, data = next_batch(data)
-  t1 = first_batch[0][0] # Time of the first element
+  t1 = first_batch['time'] # Time of the first element
 
 try:
     while True:
@@ -202,7 +207,7 @@ try:
         if args.usedata: motion = batch['imu']
         else: 
           motion = imu.get_latest() - offsetU
-          datadump.append([t2, 'imu', latest_motion])
+          datadump.append([t2, 'imu', motion])
           imu.clear_all()
         
         if args.negativegyro:
@@ -251,9 +256,7 @@ try:
         # {'bearing': degrees, 'tag': id}
         # If a measurement is not ready, this returns []
         
-        if args.usedata:
-          if 'measurements' not in batch: measurements = []
-          else: measurements = batch['measurements']
+        if args.usedata: measurements = batch['measurements']
         else:
           measurements =  measure.get_measurement()
           datadump.append([t2, 'measurements', measurements])

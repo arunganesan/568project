@@ -8,13 +8,13 @@ def next_batch (data):
   t = item[0]
   items_arr.append(item)
   while (len(data) != 0 and data[0][0] == t):
-    items.append(data.pop(0))
-   
+    items_arr.append(data.pop(0))
+  
   items = {'time': t}
   for item in items_arr:
     name = item[1]
-    data = item[2]
-    if items[name] = data
+    values = item[2]
+    items[name] = values
 
   return items, data
 
