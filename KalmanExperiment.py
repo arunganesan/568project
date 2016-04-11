@@ -31,9 +31,6 @@ parser.add_argument('--savefilter', type=str, default='runs/output.txt')
 parser.add_argument('--savedata', type=str, default='runs/data.pkl')
 args = parser.parse_args()
 
-if args.usedata != None:
-  print 'Data not yet supported'
-  exit(1)
 
 # Nulling out the files
 open(args.savefilter, 'w').close()
@@ -90,22 +87,33 @@ VEL_DECAY = 0    # Reduce the velocity by this factor if we detect no motion
 #####################################
 # INITIALIZATION
 #####################################
+if args.usedata != None:
+  # Set up joystick
+  joystick = Joystick()
 
-# Set up joystick
-joystick = Joystick()
+  # Initialize IMU
+  imu = IMU()
+  while True:
+      l = imu.get_latest()
+      imu.clear_all()
+      if l != None: break
+  
+  # Get offset of IMU
+  num = 10
+  u = imu.get_latest()
+  for i in range(0,num-1):
+      u += imu.get_latest()
+      time.sleep(dt)
+  u = u/num
+  offsetU = u
 
-# Initialize IMU
-imu = IMU()
-while True:
-    l = imu.get_latest()
-    imu.clear_all()
-    if l != None: break
 
-# Initialize measurement
-measure = Measure(debug_mode=False)
 
-# Initialize flow detection
-flow = Flow()
+  # Initialize measurement
+  measure = Measure(debug_mode=False)
+
+  # Initialize flow detection
+  flow = Flow()
 
 # Initialize Extended Kalman Filter
 rk = ExtendedKalmanFilter(dim_x=3, dim_z=1)
@@ -121,15 +129,6 @@ rk.R = np.array([[math.radians(april_angle)**2]])
 
 # Covariance matrix
 rk.P = np.diag([XCOV**2, YCOV**2, math.radians(THCOV)**2])
-
-# Get offset of IMU
-num = 10
-u = imu.get_latest()
-for i in range(0,num-1):
-    u += imu.get_latest()
-    time.sleep(dt)
-u = u/num
-offsetU = u
 
 
 
@@ -151,20 +150,38 @@ datadump = []
 motions = []
 
 sys.stderr.write('Started!\n')
+
+if args.usedata != None:
+  ifile = open(args.usedata, 'r')
+  data = pickle.load(ifile) 
+  ifile.close()
+  
+  first_batch, data = next_batch(data)
+  t1 = first_batch[0][0] # Time of the first element
+
 try:
     while True:
+        if args.usedata:
+          batch, data = next_batch(data)
+          if batch == None: break
+        
         # Track timestep
-        t2 = time.time()
-        diff = t2-t1
-        t1 = t2
+        if args.usedata: t2 = batch['time']
+        else: t2 = time.time()
 
+        diff = t2 - t1
+        t1 = t2
+        
 
         #################################################
         # Flow Update
         #################################################
-
-        latest_motion = flow.get_motion()
-        datadump.append([t2,'flow', latest_motion])
+        
+        if args.usedata: latest_motion = batch['flow']
+        else: 
+          latest_motion = flow.get_motion()
+          datadump.append([t2,'flow', latest_motion])
+        
         """
         zerod = False
         if latest_motion != None:
@@ -181,11 +198,13 @@ try:
         #################################################
 
         # Recieve Control
-
-        motion = imu.get_latest() - offsetU
-        datadump.append([t2, 'imu', latest_motion])
-        imu.clear_all()
-
+        
+        if args.usedata: motion = batch['imu']
+        else: 
+          motion = imu.get_latest() - offsetU
+          datadump.append([t2, 'imu', latest_motion])
+          imu.clear_all()
+        
         if args.negativegyro:
             motion[1] = -1*motion[1]
         rk.u = motion
@@ -198,9 +217,12 @@ try:
         rk.u[0] = velocity_Y
         """
         # Receiving joystick control
-        joy = joystick.get_latest()
-        datadump.append([t2, 'joystick', joy])
-        joystick.clear_all()
+        if args.usedata: joy = batch['joystick']
+        else:
+          joy = joystick.get_latest()
+          datadump.append([t2, 'joystick', joy])
+          joystick.clear_all()
+        
         rk.u[0] = joy
 
         #print joy
@@ -228,10 +250,14 @@ try:
         # Each item in the list is a dictionary
         # {'bearing': degrees, 'tag': id}
         # If a measurement is not ready, this returns []
-        measurements =  measure.get_measurement()
-        if len(measurements) != 0:
+        
+        if args.usedata:
+          if 'measurements' not in batch: measurements = []
+          else: measurements = batch['measurements']
+        else:
+          measurements =  measure.get_measurement()
           datadump.append([t2, 'measurements', measurements])
-
+        
         for zm in measurements:
             z = np.array([zm['bearing']])
             markerId = zm['id']
