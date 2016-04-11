@@ -165,12 +165,14 @@ if args.usedata != None:
   #first_batch, data = next_batch(data)
   #t1 = first_batch['time'] # Time of the first element
   #t1 = data[0][0] - 0.001
-  data[0][0]
+  t1 = data[0][0]
+  offsetU = data[0][2]
+
   assert data[0][1] == 'initial'
   data.pop(0)
 
 else:
-  datatump.append([t1, 'initial', t1])
+  datatump.append([t1, 'initial', offsetU])
 
 try:
     while True:
