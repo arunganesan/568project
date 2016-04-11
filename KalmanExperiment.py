@@ -29,10 +29,9 @@ parser.add_argument('--data', type=str)
 parser.add_argument('--negativegyro', action='store_true')
 args = parser.parse_args()
 
-print args
-exit(1)
-if 'data' in args:
+if args.data != None:
   print 'Data not yet supported' 
+  exit(1)
 
 PREDFILE = 'runs/onlypred.txt'
 PREDUPDA = 'runs/predupdate.txt'
