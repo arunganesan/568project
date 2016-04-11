@@ -33,7 +33,7 @@ def printMatlab (rk, filename):
     outstr =  '\t'.join(['{}'.format(d) for d in data]) + '\n'
     ofile.write(outstr)
     ofile.close()
-    
+    return outstr    
 
 def minimizedAngle(theta):
     while theta>math.pi:
