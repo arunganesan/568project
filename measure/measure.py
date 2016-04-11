@@ -22,7 +22,7 @@ class Measure:
   def get_measurement (self):
     if self.parent_conn.poll(0.1) == False:
       return []
-
+    
     # Else
     measures = self.parent_conn.recv()
     self.measurements += measures
@@ -35,6 +35,8 @@ class Measure:
     from image_to_angle import get_angle
     #camera = picamera.PiCamera()
     
+    prev_time = 0
+    timedelta = 0.05
     while (True):
       try:
           measurements = []
@@ -47,7 +49,15 @@ class Measure:
           #    filename = 'image.jpg'
           #camera.capture(filename)
           filename = 'image.jpg'
-          mtime = os.path.getmtime(filename)
+          if not os.path.exists(filename): continue
+          try:
+            mtime = os.path.getmtime(filename)
+          except:
+            # Got some error
+            continue
+        
+          if  mtime - prev_time < timedelta: continue
+          else: prev_time = mtime
           
           # 2. Run april tags
           cmd = './measure/april -d {}'.format(filename).split()

@@ -3,6 +3,7 @@
 import numpy as np
 import picamera
 import picamera.array
+import os
 
 class DetectMotion(picamera.array.PiMotionAnalysis):
     def set_conn (self, conn):
@@ -62,10 +63,11 @@ class Flow:
         camera.resolution = (200, 150)
         #camera.resolution = (240, 160)
         camera.start_recording('/dev/null', format='h264', motion_output=output)
-        camera.wait_recording(1)
+        camera.wait_recording(0.25)
         #t = int(time.time())
         #name = '{}-image.jpg'.format(t)
         name = 'image.jpg'
+        os.remove(name)
         camera.capture(name, use_video_port=True)
         camera.stop_recording()
 
