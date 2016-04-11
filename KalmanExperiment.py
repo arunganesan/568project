@@ -23,7 +23,7 @@ parser.add_argument('--usedata', type=str)
 parser.add_argument('--negativegyro', action='store_true')
 
 parser.add_argument('--savefilter', type=str, default='runs/output.txt')
-parser.add_argument('--savedata', type=str, default='runs/data.pkl')
+parser.add_argument('--savedata', type=str, default='runs/data2.pkl')
 args = parser.parse_args()
 
 
@@ -110,7 +110,7 @@ if args.usedata == None:
   offsetU = u
 
 
-
+  
   # Initialize measurement
   measure = Measure(debug_mode=False)
 
@@ -152,7 +152,6 @@ rk.P = np.diag([XCOV**2, YCOV**2, math.radians(THCOV)**2])
 
 # Evolve the state forever
 t1 = time.time(); t2 = 0
-xs, track = [], []
 datadump = []
 
 sys.stderr.write('Started!\n')
@@ -165,14 +164,13 @@ if args.usedata != None:
   #first_batch, data = next_batch(data)
   #t1 = first_batch['time'] # Time of the first element
   #t1 = data[0][0] - 0.001
+  assert data[0][1] == 'initial'
   t1 = data[0][0]
   offsetU = data[0][2]
-
-  assert data[0][1] == 'initial'
   data.pop(0)
 
-else:
-  datatump.append([t1, 'initial', offsetU])
+#else:
+datadump.append([t1, 'initial', offsetU])
 
 try:
     while True:
@@ -194,8 +192,7 @@ try:
         if args.usedata: latest_motion = batch['flow']
         else:
           latest_motion = flow.get_motion();
-          datadump.append([t2,'flow', latest_motion])
-          flow.clear_all()
+        datadump.append([t2,'flow', latest_motion])
 
         """
         zerod = False
@@ -213,16 +210,18 @@ try:
         #################################################
 
         # Recieve Control
-
-        if args.usedata: motion = batch['imu']
+        
+        if args.usedata: 
+            motion = batch['imu']
         else:
           motion = imu.get_latest(); imu.clear_all()
-          datadump.append([t2, 'imu', motion])
-
-        motion -= offsetU
-        if args.negativegyro: motion[1] = -1*motion[1]
+          motion -= offsetU
+          if args.negativegyro: 
+            motion[1] = -1*motion[1]
+        datadump.append([t2, 'imu', motion])
+        
         rk.u = motion
-
+        
         """
         velocity_Y += diff*rk.u[0]
 
@@ -234,7 +233,7 @@ try:
         if args.usedata: joy = batch['joystick']
         else:
           joy = joystick.get_latest(); joystick.clear_all()
-          datadump.append([t2, 'joystick', joy])
+        datadump.append([t2, 'joystick', joy])
 
 
         rk.u[0] = joy
@@ -268,7 +267,7 @@ try:
           else: measurements = batch['measurements']
         else:
           measurements =  measure.get_measurement()
-          datadump.append([t2, 'measurements', measurements])
+        datadump.append([t2, 'measurements', measurements])
 
         for zm in measurements:
             z = np.array([zm['bearing']])
@@ -276,15 +275,21 @@ try:
             landmarkPosition = get_landmark(markerId)
 
             z[0] = math.radians(z[0])
-            rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
+            #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
 
 
 
         # Printing state of
         printMatlab(rk, args.savefilter)
-        if not args.silent: printStuff(rk, measurements)
+        if not args.silent: printStuff(rk, measurements, diff)
 
         if not args.usedata: time.sleep(dt)
+
+    print 'Saving data file'
+    ofile = open(args.savedata, 'wb')
+    pickle.dump(datadump, ofile)
+    ofile.close()
+
 
 except KeyboardInterrupt, SystemExit:
    sys.stderr.write( 'Shutting down')
@@ -292,11 +297,6 @@ except KeyboardInterrupt, SystemExit:
    flow.kill()
    measure.kill()
    joystick.kill()
-
-   print 'Saving data file'
-   ofile = open(args.savedata, 'wb')
-   pickle.dump(datadump, ofile)
-   ofile.close()
 
    time.sleep(1)
    exit(1)

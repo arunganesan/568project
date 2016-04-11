@@ -18,12 +18,12 @@ def next_batch (data):
 
   return items, data
 
-def printStuff(rk, measurements):
+def printStuff(rk, measurements, diff):
     #print rk.x[0], rk.x[1], rk.x[2], rk.x[3], rk.x[4], measurements, zerod
     ids = [m['id'] for m in measurements]
     measures = [m['bearing'] for m in measurements]
-    fmtstring = 'X={:7.3f}  Y={:7.3f}  TH={:7.3f} => {:7.3f} U={:7.3f}  z={}'
-    print fmtstring.format(rk.x[0][0], rk.x[1][0], rk.x[2][0],  math.degrees(rk.x[2]), rk.u[0], ids)
+    fmtstring = 'diff={:7.3f} X={:7.3f}  Y={:7.3f}  TH={:7.3f} => {:7.3f} U={:7.3f}  z={}'
+    print fmtstring.format(diff, rk.x[0][0], rk.x[1][0], rk.x[2][0],  math.degrees(rk.x[2]), rk.u[0], ids)
 
 
 def printMatlab (rk, filename):
