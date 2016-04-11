@@ -256,7 +256,9 @@ try:
         # {'bearing': degrees, 'tag': id}
         # If a measurement is not ready, this returns []
         
-        if args.usedata: measurements = batch['measurements']
+        if args.usedata: 
+          if 'measurements' not in batch: measurements = []
+          else: measurements = batch['measurements']
         else:
           measurements =  measure.get_measurement()
           datadump.append([t2, 'measurements', measurements])
