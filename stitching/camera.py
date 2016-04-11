@@ -47,14 +47,25 @@ if __name__ == '__main__':
         image = computeStitch(frame2, frame1, frame0)
         #image = imutils.resize(image, width=400)
         cv2.imshow('frame', image)
-	cv2.imwrite('image.jpg', image)
-	break
-        #data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-        #print "received message:", data
- 	
+        
+        data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+        parts = data.strip().split()
+        parts_float = map(float, parts)
+        x, y, th = parts[0:3]
+        P = np.array([parts[3:6], parts[6:9], parts[9:12]])
+         
+        x /= 0.0014739
+        y /= 0.00146313
+      
+        plotcov2d(image, [x,y], P)
+        
+
+        print "received message:", data
+ 	      
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     del vs0
     del vs1
     del vs2
-
+i
