@@ -99,7 +99,7 @@ if args.usedata == None:
       l = imu.get_latest()
       imu.clear_all()
       if l != None: break
-  
+
   # Get offset of IMU
   num = 10
   u = imu.get_latest()
@@ -144,6 +144,8 @@ rk.P = np.diag([XCOV**2, YCOV**2, math.radians(THCOV)**2])
 
 
 
+
+
 #####################################
 # FILTER LOOP
 #####################################
@@ -152,41 +154,47 @@ rk.P = np.diag([XCOV**2, YCOV**2, math.radians(THCOV)**2])
 t1 = time.time(); t2 = 0
 xs, track = [], []
 datadump = []
-motions = []
 
 sys.stderr.write('Started!\n')
 
 if args.usedata != None:
   ifile = open(args.usedata, 'r')
-  data = pickle.load(ifile) 
+  data = pickle.load(ifile)
   ifile.close()
-  
+
   #first_batch, data = next_batch(data)
   #t1 = first_batch['time'] # Time of the first element
-  t1 = data[0][0] - 0.001
+  #t1 = data[0][0] - 0.001
+  data[0][0]
+  assert data[0][1] == 'initial'
+  data.pop(0)
+
+else:
+  datatump.append([t1, 'initial', t1])
 
 try:
     while True:
         if args.usedata:
           batch, data = next_batch(data)
           if batch == None: break
-        
+
         # Track timestep
         if args.usedata: t2 = batch['time']
         else: t2 = time.time()
-        
+
         diff = t2 - t1
         t1 = t2
-        
+
         #################################################
         # Flow Update
         #################################################
-        
+
         if args.usedata: latest_motion = batch['flow']
-        else: 
-          latest_motion = flow.get_motion()
+        else:
+          latest_motion = flow.get_motion();
           datadump.append([t2,'flow', latest_motion])
-        
+          flow.clear_all()
+
         """
         zerod = False
         if latest_motion != None:
@@ -203,17 +211,16 @@ try:
         #################################################
 
         # Recieve Control
-        
+
         if args.usedata: motion = batch['imu']
-        else: 
-          motion = imu.get_latest() - offsetU
+        else:
+          motion = imu.get_latest(); imu.clear_all()
           datadump.append([t2, 'imu', motion])
-          imu.clear_all()
-        
-        if args.negativegyro:
-            motion[1] = -1*motion[1]
+
+        motion -= offsetU
+        if args.negativegyro: motion[1] = -1*motion[1]
         rk.u = motion
-        
+
         """
         velocity_Y += diff*rk.u[0]
 
@@ -224,10 +231,10 @@ try:
         # Receiving joystick control
         if args.usedata: joy = batch['joystick']
         else:
-          joy = joystick.get_latest()
+          joy = joystick.get_latest(); joystick.clear_all()
           datadump.append([t2, 'joystick', joy])
-          joystick.clear_all()
-        
+
+
         rk.u[0] = joy
 
         #print joy
@@ -241,8 +248,6 @@ try:
                          [0, 0, 1]])
 
 
-        
-
         ## Prediction Step (run my own)
         rk = predict_State(rk, diff)
 
@@ -255,14 +260,14 @@ try:
         # Each item in the list is a dictionary
         # {'bearing': degrees, 'tag': id}
         # If a measurement is not ready, this returns []
-        
-        if args.usedata: 
+
+        if args.usedata:
           if 'measurements' not in batch: measurements = []
           else: measurements = batch['measurements']
         else:
           measurements =  measure.get_measurement()
           datadump.append([t2, 'measurements', measurements])
-        
+
         for zm in measurements:
             z = np.array([zm['bearing']])
             markerId = zm['id']
@@ -273,13 +278,11 @@ try:
 
 
 
-        # Printing state of filter
-        if not args.silent:
-            printStuff(rk, measurements)
+        # Printing state of
         printMatlab(rk, args.savefilter)
+        if not args.silent: printStuff(rk, measurements)
 
-        if not args.usedata:
-          time.sleep(dt)
+        if not args.usedata: time.sleep(dt)
 
 except KeyboardInterrupt, SystemExit:
    sys.stderr.write( 'Shutting down')
