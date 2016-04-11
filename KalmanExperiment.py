@@ -233,7 +233,7 @@ try:
         else:
           joy = joystick.get_latest(); joystick.clear_all()
           datadump.append([t2, 'joystick', joy])
-
+        
 
         rk.u[0] = joy
 
@@ -284,18 +284,19 @@ try:
 
         if not args.usedata: time.sleep(dt)
 
-    print 'Saving data file'
-    ofile = open(args.savedata, 'wb')
-    pickle.dump(datadump, ofile)
-    ofile.close()
-
-
+   
 except KeyboardInterrupt, SystemExit:
    sys.stderr.write( 'Shutting down')
    imu.kill()
    flow.kill()
    measure.kill()
    joystick.kill()
+    
+   print 'Saving data file'
+   ofile = open(args.savedata, 'wb')
+   pickle.dump(datadump, ofile)
+   ofile.close()
+
 
    time.sleep(1)
    exit(1)
