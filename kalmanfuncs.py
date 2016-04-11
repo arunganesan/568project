@@ -36,6 +36,7 @@ def hx(x, landmarkPosition):
 def predict_State(rk, dt):
     v = rk.u[0]
     w = math.radians(rk.u[1])
+    if w == 0: w = 1e-5
     th = rk.x[2]
     
     rk.x[0] = rk.x[0] + -v/w*math.sin(th) + v/w*math.sin(th + w*dt)

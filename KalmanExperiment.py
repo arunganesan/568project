@@ -119,7 +119,7 @@ if args.usedata == None:
   flow = Flow()
 
 
-udpstuff.init()
+sock = udpstuff.init()
 
 # Initialize Kalman
 
@@ -239,13 +239,15 @@ try:
         
 
         rk.u[0] = joy
+        if math.isnan(rk.u[0]): rk.u[0] = 0 
 
         #print joy
         # Change process matrix accordingly
         v = rk.u[0]
         w = math.radians(float(rk.u[1]))
+        if w == 0: w = 1e-5
         th = rk.x[2]
-
+        
         rk.F = array(   [[1, 0, v/w*(-math.cos(th)+math.cos(th + w*diff))],
                          [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
                          [0, 0, 1]])
@@ -284,7 +286,7 @@ try:
         # Printing state of
         outstr = printMatlab(rk, args.savefilter)
         if not args.silent: printStuff(rk, measurements, diff)
-        udpstuff.send(outstr)
+        udpstuff.send_message(sock, outstr)
 
         if not args.usedata: time.sleep(dt)
 
