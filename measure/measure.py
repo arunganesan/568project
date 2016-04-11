@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+import os
 
 class Measure:
   def __init__ (self, debug_mode=False):
@@ -46,6 +47,7 @@ class Measure:
           #    filename = 'image.jpg'
           #camera.capture(filename)
           filename = 'image.jpg'
+          mtime = os.path.getmtime(filename)
           
           # 2. Run april tags
           cmd = './measure/april -d {}'.format(filename).split()
@@ -61,7 +63,8 @@ class Measure:
             angle = get_angle(100, pixel_loc)
             measurements.append({
               'id': tag_id,
-              'bearing': angle[0]
+              'bearing': angle[0],
+              'time': mtime
             })
           
           child_conn.send(measurements)
