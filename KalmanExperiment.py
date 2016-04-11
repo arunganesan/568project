@@ -161,8 +161,9 @@ if args.usedata != None:
   data = pickle.load(ifile) 
   ifile.close()
   
-  first_batch, data = next_batch(data)
-  t1 = first_batch['time'] # Time of the first element
+  #first_batch, data = next_batch(data)
+  #t1 = first_batch['time'] # Time of the first element
+  t1 = data[0][0] - 0.001
 
 try:
     while True:
@@ -173,11 +174,10 @@ try:
         # Track timestep
         if args.usedata: t2 = batch['time']
         else: t2 = time.time()
-
+        
         diff = t2 - t1
         t1 = t2
         
-
         #################################################
         # Flow Update
         #################################################
@@ -213,7 +213,7 @@ try:
         if args.negativegyro:
             motion[1] = -1*motion[1]
         rk.u = motion
-
+        
         """
         velocity_Y += diff*rk.u[0]
 
@@ -241,7 +241,7 @@ try:
                          [0, 0, 1]])
 
 
-
+        
 
         ## Prediction Step (run my own)
         rk = predict_State(rk, diff)
@@ -278,8 +278,8 @@ try:
             printStuff(rk, measurements)
         printMatlab(rk, args.savefilter)
 
-
-        time.sleep(dt)
+        if not args.usedata:
+          time.sleep(dt)
 
 except KeyboardInterrupt, SystemExit:
    sys.stderr.write( 'Shutting down')
