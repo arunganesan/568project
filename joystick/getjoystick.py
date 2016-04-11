@@ -24,8 +24,8 @@ class Joystick:
         reading = self.parent_conn.recv()
         self.readings.append(reading)
     
-    if len(self.readings) > 10:
-        print 'Warning: Cleared pipe, {} elements remaining, maybe trashing.'.format(len(self.readings))
+    if len(self.readings) > 100:
+        print 'Warning Joystick: Cleared pipe, {} elements remaining, maybe trashing.'.format(len(self.readings))
     #print 'Cleared pipe. Readings has {} elements'.format(len(self.readings))
 
 
@@ -34,11 +34,7 @@ class Joystick:
     
     if len(self.readings) == 0: return None
     else: 
-        nparr = np.zeros(3)
-        nparr[0] = self.readings[-1].y
-        nparr[1] = self.readings[-1].r
-        nparr[2] = self.readings[-1].dt
-        return nparr
+        return self.readings[-1]
 
   def get_averaged (self):
       import numpy as np
@@ -55,7 +51,7 @@ class Joystick:
   def read_continuous (self, child_conn):
       import subprocess
       
-      cmd = 'sudo python diddyRedJoyEncoder.py'
+      cmd = 'python -u diddyRedJoyEncoder.py'
       p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
       while True:
           try:
@@ -70,7 +66,6 @@ class Joystick:
           except KeyboardInterrupt:
             break
           
-          print 'broke loop'
 
 if __name__ == '__main__':
   import time

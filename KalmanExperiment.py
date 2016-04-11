@@ -34,25 +34,19 @@ open(PREDFILE, 'w').close()
 open(PREDUPDA, 'w').close()
 
 # Measurement model from Probabilistic Robotics, page 207
-def printStuff(rk, measurements, zerod):
+def printStuff(rk, measurements):
     #print rk.x[0], rk.x[1], rk.x[2], rk.x[3], rk.x[4], measurements, zerod
-    
-    if not zerod:
-        zerod_str = ''
-    else: zerod_str = 'o~o'
     
     ids = [m['id'] for m in measurements]
     measures = [m['bearing'] for m in measurements]
-    fmtstring = 'X={:7.3f}  Y={:7.3f}  TH={:7.3f} => {:7.3f}  [{:3s}]  Velocity={:7.3f} z={}'
-    print fmtstring.format(rk.x[0][0], rk.x[1][0], rk.x[2][0],  math.degrees(rk.x[2]), zerod_str, velocity_Y, ids)
+    fmtstring = 'X={:7.3f}  Y={:7.3f}  TH={:7.3f} => {:7.3f} U={:7.3f}  z={}'
+    print fmtstring.format(rk.x[0][0], rk.x[1][0], rk.x[2][0],  math.degrees(rk.x[2]), rk.u[0], ids)
     
 
-def printMatlab (rk, zerod, filename):
+def printMatlab (rk, filename):
     ofile = open(filename, 'a')
-    z = 1
-    if not zerod: z = 0
     data = [rk.x[0][0], rk.x[1][0], rk.x[2][0], rk.P[0,0], rk.P[0,1], rk.P[0,2],\
-            rk.P[1,0], rk.P[1,1], rk.P[1,2], rk.P[2,0], rk.P[2,1], rk.P[2,2], z]
+            rk.P[1,0], rk.P[1,1], rk.P[1,2], rk.P[2,0], rk.P[2,1], rk.P[2,2]]
     ofile.write('\t'.join(['{}'.format(d) for d in data]) + '\n')
     ofile.close()
 
@@ -87,7 +81,7 @@ def predict_State(rk, dt):
     
     # Account for zero velocities
     #rk.x = np.dot(rk.F, rk.x) + np.array([[.5*a_x*dt*dt, .5*a_y*dt*dt, omega*dt/14.375, a_x*dt, a_y*dt]]).T
-    v = velocity_Y #rk.u[0]
+    v = rk.u[0]
     w = math.radians(rk.u[1])
     #th = math.radians(rk.x[2])
     th = rk.x[2]
@@ -135,7 +129,6 @@ while True:
     imu.clear_all()
     if l != None: break
 
-velocity_Y = 0
 omega_Y = 0
 
 # Initialize measurement
@@ -225,6 +218,7 @@ try:
         #################################################
         
         latest_motion = flow.get_motion()
+        """
         zerod = False
         if latest_motion != None:
             motions += latest_motion
@@ -233,28 +227,37 @@ try:
                 # Reducing velocities
                 velocity_Y = velocity_Y * VEL_DECAY
                 zerod = True
-
-
+        """
+            
         #################################################
         # Prediction Step
         #################################################
         
         # Recieve Control
+        
         motion = imu.get_latest() - offsetU
         imu.clear_all()
-
+        
         if args.negativegyro: 
             motion[1] = -1*motion[1]
         rk.u = motion
         rk2.u = motion
+        """
         velocity_Y += diff*rk.u[0]
         
+        # XXX This is not used.
+        # We are getting velocity frmo joystick
         rk.u[0] = velocity_Y
         rk2.u[0] = velocity_Y
-
-       
+        """
+        # Receiving joystick control
+        joy = joystick.get_latest()
+        joystick.clear_all()
+        rk.u[0] = joy
+        rk2.u[0] = joy
+        #print joy 
         # Change process matrix accordingly
-        v = velocity_Y #float(rk.u[0])
+        v = rk.u[0]
         w = math.radians(float(rk.u[1]))
         th = rk.x[2]
         
@@ -304,12 +307,12 @@ try:
         
         
         #print velocity_Y
-        if args.debug:
-            printStuff(rk, measurements, zerod)
-        else:
-            sys.stderr.write('Angle: {}\n'.format(math.degrees(rk.x[2])))
-            printMatlab(rk, zerod, PREDUPDA)
-            printMatlab(rk2, zerod, PREDFILE)
+        #if args.debug:
+        printStuff(rk2, measurements)
+        #else:
+            #sys.stderr.write('Angle: {}\n'.format(math.degrees(rk.x[2])))
+        printMatlab(rk, PREDUPDA)
+        printMatlab(rk2, PREDFILE)
         #print i, measurements
         i += 1
         

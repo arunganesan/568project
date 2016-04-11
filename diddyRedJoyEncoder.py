@@ -55,7 +55,7 @@ buttonResetEpo = 3                      # Joystick button number to perform an E
 buttonSlow = 8                          # Joystick button number for driving slowly whilst held (L2)
 slowFactor = 0.5                        # Speed to slow to when the drive slowly button is held, e.g. 0.5 would be half speed
 buttonFastTurn = 9                      # Joystick button number for turning fast (R2)
-interval = 0.00                         # Time between updates in seconds, smaller responds faster but uses more processor time
+interval = 0.05                         # Time between updates in seconds, smaller responds faster but uses more processor time
 
 # Power settings
 voltageIn = 12.0                        # Total battery voltage to the PicoBorg Reverse
@@ -68,7 +68,8 @@ else:
     maxPower = voltageOut / float(voltageIn)
 
 def get_velocity (power):
-    return 0.3937
+  if power < 0: return -0.3937
+  return 0.3937
 
 # Setup pygame and wait for the joystick to become available
 PBR.MotorsOff()
@@ -176,12 +177,10 @@ try:
                     # Turning left
                     driveRight = driveRight
                     driveLeft = -driveLeft
-                    velocity = 0
                 elif leftRight > 0.05:
                     # Turning right
                     driveLeft = driveLeft
                     driveRight = -driveRight
-                    velocity = 0
                 # Check for button presses
                 if joystick.get_button(buttonResetEpo):
                     PBR.ResetEpo()
@@ -190,7 +189,6 @@ try:
                     driveRight *= slowFactor
                 # Set the motors to the new speeds
                 
-                velocity = get_velocity(driveRight * maxPower)
                 
                 PBR.SetMotor1(driveRight * maxPower)
                 PBR.SetMotor2(-driveLeft * maxPower)
@@ -217,14 +215,24 @@ try:
         PBR.SetLed(PBR.GetEpo())
         # Wait for the interval period
         time.sleep(interval)
-        if hadEvent: 
-            stdout.write('{}\r\n'.format(velocity))
-            nomotion_count = 0
-        else:
-            nomotion_count += 1
-            if nomotion_count > MOTION_THRESH:
-                stdout.write('0\r\n')
-                nomotion_count = 0
+       	m1 = PBR.GetMotor1()
+	m2 = PBR.GetMotor2()
+	if m1 == m2: stdout.write('0\n')
+	else:
+	  direction = 1
+	  if m2 > m1: direction = -1
+ 	  vel = get_velocity(direction)
+	  stdout.write('{}\n'.format(vel))
+	 #string = '{} {}\n'.format(PBR.GetMotor1(), PBR.GetMotor2())
+        #print string
+        #if hadEvent: 
+        #    #stdout.write('{}\r\n'.format(velocity))
+        #    nomotion_count = 0
+        #else:
+        #    nomotion_count += 1
+        #    if nomotion_count > MOTION_THRESH:
+        #        stdout.write('0\r\n')
+        #        nomotion_count = 0
     # Disable all drives
     PBR.MotorsOff()
 except KeyboardInterrupt:
