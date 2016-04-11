@@ -12,6 +12,7 @@ import numpy as np, time, math, subprocess
 
 from utils import *
 from kalmanfuncs import *
+import udpstuff
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -117,6 +118,8 @@ if args.usedata == None:
   # Initialize flow detection
   flow = Flow()
 
+
+udpstuff.init()
 
 # Initialize Kalman
 
@@ -275,12 +278,13 @@ try:
 
             z[0] = math.radians(z[0])
             #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
-
-
+                
+        
 
         # Printing state of
-        printMatlab(rk, args.savefilter)
+        outstr = printMatlab(rk, args.savefilter)
         if not args.silent: printStuff(rk, measurements, diff)
+        udpstuff.send(outstr)
 
         if not args.usedata: time.sleep(dt)
 

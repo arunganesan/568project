@@ -30,9 +30,10 @@ def printMatlab (rk, filename):
     ofile = open(filename, 'a')
     data = [rk.x[0][0], rk.x[1][0], rk.x[2][0], rk.P[0,0], rk.P[0,1], rk.P[0,2],\
             rk.P[1,0], rk.P[1,1], rk.P[1,2], rk.P[2,0], rk.P[2,1], rk.P[2,2]]
-    ofile.write('\t'.join(['{}'.format(d) for d in data]) + '\n')
+    outstr =  '\t'.join(['{}'.format(d) for d in data]) + '\n'
+    ofile.write(outstr)
     ofile.close()
-
+    
 
 def minimizedAngle(theta):
     while theta>math.pi:
