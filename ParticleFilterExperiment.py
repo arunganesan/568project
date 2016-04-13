@@ -1,18 +1,12 @@
 # np.dot(rk.F, rk.xi Require different functions to run (This seems like bad practice)
-import sys
-import os, pickle
-sys.path.append('/home/pi/Documents/dev/diddyborg-tabletop/sensors/IMU_LSM303')
-sys.path.append('/home/pi/Documents/dev/diddyborg-tabletop/sensors/IMU_LSM303/Acc-Mag-LSM303-Python')
-sys.path.append('/home/pi/Documents/dev/diddyborg-tabletop/sensors/IMU_LSM303/Gyro-L3GD20-Python')
 
-from filterpy.common import Q_discrete_white_noise
-from filterpy.kalman import ExtendedKalmanFilter
 from numpy import eye, array, asarray
 import numpy as np, time, math, subprocess
-
+import copy
 from utils import *
 from kalmanfuncs import *
 import udpstuff
+from filterpy.monte_carlo import resampling
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -22,6 +16,7 @@ parser.add_argument('--theta', type=float, default=0)
 parser.add_argument('--silent', action='store_true')
 parser.add_argument('--usedata', type=str)
 parser.add_argument('--negativegyro', action='store_true')
+parser.add_argument('--num_particles', default=1000)
 
 parser.add_argument('--savefilter', type=str, default='runs/output.txt', help="Saves the filter state to be used in matlab")
 parser.add_argument('--savedata', type=str, default='runs/data.pkl', help="Saves the data file of the control inputs")
@@ -51,6 +46,8 @@ THCOV = 1
 range_std = 0.005 # metersi
 range_angle = 1
 april_angle = 1
+velocity_std = 5
+omega_std = 5
 
 
 
@@ -67,17 +64,7 @@ VEL_DECAY = 0    # Reduce the velocity by this factor if we detect no motion
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+NUM_PARTICLES = args.NUM_PARTICLES
 
 
 #####################################
@@ -121,29 +108,24 @@ if args.usedata == None:
 
 sock = udpstuff.init()
 
-# Initialize Kalman
-
-# Initialize Extended Kalman Filter
-rk = ExtendedKalmanFilter(dim_x=3, dim_z=1)
+# Initialize Particle Filter
 
 # Starting guess location
-rk.x = array([[args.x, args.y, args.theta]]).T
-
-# Motion Noise
-rk.Q = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
+initialMean = array([[args.x, args.y, args.theta]]).T
 
 # Measurement Noise
 rk.R = np.array([[math.radians(april_angle)**2]])
 
-# Covariance matrix
-rk.P = np.diag([XCOV**2, YCOV**2, math.radians(THCOV)**2])
 
+# Create Particles
+particles = []
+for i in range(NUM_PARTICLES):
+    particles.append(Particle(x=initialMean, v_std=velocity_std, w_std=omega_std)
 
-
-
-
-
-
+# Create Resampling particles
+newParticles = []
+# Initizalize weights
+weights = np.zeros(1,100)
 
 
 
@@ -173,6 +155,9 @@ if args.usedata != None:
   data.pop(0)
 else:
   datadump.append([t1, 'initial', offsetU])
+
+
+
 
 try:
     while True:
@@ -223,6 +208,8 @@ try:
           datadump.append([t2, 'imu', motion])
         
         rk.u = motion
+
+        
         
         """
         velocity_Y += diff*rk.u[0]
@@ -239,7 +226,7 @@ try:
         
 
         rk.u[0] = joy
-        if math.isnan(rk.u[0]): rk.u[0] = 0 
+        if math.isnan(rk.u[0]): rk.u[0] = 0     
 
         #print joy
         # Change process matrix accordingly
@@ -248,14 +235,11 @@ try:
         if w == 0: w = 1e-5
         th = rk.x[2]
         
-        rk.F = array(   [[1, 0, v/w*(-math.cos(th)+math.cos(th + w*diff))],
-                         [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
-                         [0, 0, 1]])
-
-
-        ## Prediction Step (run my own)
-        rk = predict_State(rk, diff)
-
+        #################################################
+        # Move Paritcles based on control
+        #################################################        
+        for particle in particles():
+            particle.sampleOdometery(v, w, diff)
 
         #################################################
         # Update Step
@@ -273,6 +257,11 @@ try:
           measurements =  measure.get_measurement()
           datadump.append([t2, 'measurements', measurements])
 
+
+        #################################################
+        # Compute weights and then resample particles
+        #################################################
+        
         for zm in measurements:
             z = np.array([zm['bearing']])
             markerId = zm['id']
@@ -280,11 +269,23 @@ try:
 
             z[0] = math.radians(z[0])
             #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
+
+            # Update weights
+            for i in range(NUM_PARTICLES):
+                weights[i] = particles[i].computeWeight(z, landmarkPosition)
+
+            # Resample weights
+            
+
+            # Create new Particles
+            for n in index:
+                newParticles.append(copy.copy(particles[n]))            
+                
                 
         
 
         # Printing state of
-        outstr = printMatlab(rk, t2, args.savefilter)
+        outstr = printMatlab(rk, args.savefilter)
         if not args.silent: printStuff(rk, measurements, diff)
         udpstuff.send_message(sock, outstr)
 
