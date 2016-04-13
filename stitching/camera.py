@@ -6,7 +6,7 @@ import imutils
 import socket
 from WarpImages import *
 
-UDP_IP = "35.2.127.133"
+UDP_IP = "35.2.36.106"
 UDP_PORT = 5005
 
 sock = socket.socket(socket.AF_INET, # Internet
@@ -15,7 +15,8 @@ sock.bind((UDP_IP, UDP_PORT))
 
 X_SCALE = 0.0014739 
 Y_SCALE = 0.00146313
-	
+
+to_be_saved = []	
 
 def plotcov2d (image, center, covariance, color=(255, 0, 0), nSigma=3):
   w, v = LA.eig(covariance)
@@ -82,28 +83,63 @@ if __name__ == '__main__':
 	correct['cov'] = P
 	
 	groundtruth.append(correct)	
-        
-	filename = 'image_{:05}.png'.format(idx)
-	idx += 1
-	
-	plotcov2d(image, (int(x),int(y)), P)
-  	#cv2.circle(image, (int(x), int(y)), 100, (255, 0, 0), -1);
-        
-        #print "received message:", data
-	image = imutils.resize(image, width=800) 	      
-	
-	cv2.imwrite(filename, image)
-        cv2.imshow('frame', image)
-	
-	
+	to_be_saved.append({
+			'door': frame0, 
+			'center': frame1, 
+			'wall': frame2,
+			'idx': idx,
+			'data': data
+		})        
 
+	#filename = 'image_{:05}.png'.format(idx)
+	#fullres_filename = 'fullres_{:05}.png'.format(idx)
+	#wall_filename = 'wall_{:05}.png'.format(idx)
+	#center_filename = 'center_{:05}.png'.format(idx)
+	#door_filename = 'door_{:05}.png'.format(idx)
+	
+	
+	idx += 1
+
+	#cv2.imwrite(fullres_filename, image)
+    	#cv2.imwrite(wall_filename, frame2)
+    	#cv2.imwrite(center_filename,frame1)
+    	#cv2.imwrite(door_filename, frame0)
+	
+    	#plotcov2d(image, (int(x),int(y)), P)
+    	#cv2.circle(image, (int(x), int(y)), 100, (255, 0, 0), -1);
+        
+    	#print "received message:", data
+    	image = imutils.resize(image, width=800) 	      
+	
+   	#cv2.imwrite(filename, image)
+    	cv2.imshow('frame', image)
+	
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     
+
+
     import pickle
-    ofile = open('results.txt', 'wb')
-    pickle.dump(groundtruth, ofile)
-    ofile.close()
+    for row in to_be_saved:
+	idx = row['idx']
+    	
+	print 'saving {}'.format(idx)
+	
+	wall_filename = 'wall_{:05}.png'.format(idx)
+	center_filename = 'center_{:05}.png'.format(idx)
+	door_filename = 'door_{:05}.png'.format(idx)
+	
+	wall = row['wall']
+	center = row['center']
+	door = row['door']
+	
+	cv2.imwrite(wall_filename, wall)
+    	cv2.imwrite(center_filename,center)
+    	cv2.imwrite(door_filename, door)
+	
+	#ofile = open('results.txt', 'wb')
+    #pickle.dump(groundtruth, ofile)
+    #ofile.close()
 
     del vs0
     del vs1
