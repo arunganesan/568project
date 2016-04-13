@@ -284,7 +284,7 @@ try:
         
 
         # Printing state of
-        outstr = printMatlab(rk, args.savefilter)
+        outstr = printMatlab(rk, t2, args.savefilter)
         if not args.silent: printStuff(rk, measurements, diff)
         udpstuff.send_message(sock, outstr)
 
