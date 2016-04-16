@@ -155,11 +155,11 @@ def computeStitch(bottom, center, top):
 
 
     # Show the final image
-    print startIndexRow_top
-    print endIndexRow_bottom
-    print startIndexCol_top
-    print endIndexCol_top
-    
+    #print startIndexRow_top
+    #print endIndexRow_bottom
+    #print startIndexCol_top
+    #print endIndexCol_top
+
     finalImage = finalImage[250+startIndexRow_top:endIndexRow_bottom-500,\
                             startIndexCol_top:endIndexCol_top,:]
     #cv2.imshow("Final Image", rz(finalImage))
