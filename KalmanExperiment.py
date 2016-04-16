@@ -1,9 +1,6 @@
 # np.dot(rk.F, rk.xi Require different functions to run (This seems like bad practice)
 import sys
 import os, pickle
-sys.path.append('/home/pi/Documents/dev/diddyborg-tabletop/sensors/IMU_LSM303')
-sys.path.append('/home/pi/Documents/dev/diddyborg-tabletop/sensors/IMU_LSM303/Acc-Mag-LSM303-Python')
-sys.path.append('/home/pi/Documents/dev/diddyborg-tabletop/sensors/IMU_LSM303/Gyro-L3GD20-Python')
 
 from filterpy.common import Q_discrete_white_noise
 from filterpy.kalman import ExtendedKalmanFilter
@@ -50,7 +47,7 @@ THCOV = 1
 # Noise Parameters (will require tuning)
 range_std = 0.005 # metersi
 range_angle = 1
-april_angle = 1
+april_angle = 10
 
 
 

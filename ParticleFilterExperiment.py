@@ -98,7 +98,7 @@ if args.usedata == None:
   offsetU = u
 
 
-  
+
   # Initialize measurement
   measure = Measure(debug_mode=False)
 
@@ -125,7 +125,7 @@ for i in range(NUM_PARTICLES):
 # Create Resampling particles
 newParticles = []
 # Initizalize weights
-weights = np.zeros(1,100)
+weights = np.zeros((1,NUM_PARTICLES))
 
 
 
@@ -197,20 +197,20 @@ try:
         #################################################
 
         # Recieve Control
-        
-        if args.usedata: 
+
+        if args.usedata:
             motion = batch['imu']
         else:
           motion = imu.get_latest(); imu.clear_all()
           motion -= offsetU
-          if args.negativegyro: 
+          if args.negativegyro:
             motion[1] = -1*motion[1]
           datadump.append([t2, 'imu', motion])
-        
+
         rk.u = motion
 
-        
-        
+
+
         """
         velocity_Y += diff*rk.u[0]
 
@@ -223,10 +223,10 @@ try:
         else:
           joy = joystick.get_latest(); joystick.clear_all()
           datadump.append([t2, 'joystick', joy])
-        
+
 
         rk.u[0] = joy
-        if math.isnan(rk.u[0]): rk.u[0] = 0     
+        if math.isnan(rk.u[0]): rk.u[0] = 0
 
         #print joy
         # Change process matrix accordingly
@@ -234,10 +234,10 @@ try:
         w = math.radians(float(rk.u[1]))
         if w == 0: w = 1e-5
         th = rk.x[2]
-        
+
         #################################################
         # Move Paritcles based on control
-        #################################################        
+        #################################################
         for particle in particles():
             particle.sampleOdometery(v, w, diff)
 
@@ -261,7 +261,7 @@ try:
         #################################################
         # Compute weights and then resample particles
         #################################################
-        
+
         for zm in measurements:
             z = np.array([zm['bearing']])
             markerId = zm['id']
@@ -275,30 +275,30 @@ try:
                 weights[i] = particles[i].computeWeight(z, landmarkPosition)
 
             # Resample weights
-            
+
 
             # Create new Particles
             for n in index:
-                newParticles.append(copy.copy(particles[n]))            
-                
-                
-        
+                newParticles.append(copy.copy(particles[n]))
+
+
+
 
         # Printing state of
-        outstr = printMatlab(rk, args.savefilter)
+        outstr = printParticles(rk, args.savefilter)
         if not args.silent: printStuff(rk, measurements, diff)
         udpstuff.send_message(sock, outstr)
 
         if not args.usedata: time.sleep(dt)
 
-   
+
 except KeyboardInterrupt, SystemExit:
    sys.stderr.write( 'Shutting down')
    imu.kill()
    flow.kill()
    measure.kill()
    joystick.kill()
-    
+
    print 'Saving data file'
    ofile = open(args.savedata, 'wb')
    pickle.dump(datadump, ofile)
