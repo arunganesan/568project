@@ -44,7 +44,7 @@ def computeStitch(bottom, center, top):
 
     # Warp top
     top    = cv2.warpPerspective(top, H_Top_To_Center, (c,r+r))
-    #cv2.imshow("Top", rz(top))    
+    #cv2.imshow("Top", rz(top))
 
     # Warp bottom
     bottom = cv2.warpPerspective(bottom, H_Bottom_To_Center, (c,r+r))
@@ -61,7 +61,7 @@ def computeStitch(bottom, center, top):
     # Filling in the picture
     ################################################
     middle = [dimR*r/2, dimC*c/2]
-    
+
     # Indices relating to the top pic
     topR = top.shape[0]
     topC = top.shape[1]
@@ -70,7 +70,7 @@ def computeStitch(bottom, center, top):
     startIndexRow_top = middle[0]/2-topR/2-moveY
     endIndexRow_top = middle[0]/2+topR/2-moveY
     startIndexCol_top = middle[1]-topC/2-moveX
-    endIndexCol_top = middle[1]+topC/2-moveX  
+    endIndexCol_top = middle[1]+topC/2-moveX
 
     # Indices relating to the bottom pic
     bottomR = bottom.shape[0]
@@ -80,13 +80,13 @@ def computeStitch(bottom, center, top):
     startIndexRow_bottom = 3*middle[0]/2-bottomR/2-moveY
     endIndexRow_bottom = 3*middle[0]/2+bottomR/2-moveY
     startIndexCol_bottom = middle[1]-bottomC/2 - moveX
-    endIndexCol_bottom = middle[1]+bottomC/2-moveX   
+    endIndexCol_bottom = middle[1]+bottomC/2-moveX
 
     # Indices relating to the center pic
     startIndexRow_center = middle[0]-r/2
     endIndexRow_center = middle[0]+r/2
     startIndexCol_center = middle[1]-c/2
-    endIndexCol_center = middle[1]+c/2 
+    endIndexCol_center = middle[1]+c/2
 
 
     ######################################################
@@ -94,15 +94,15 @@ def computeStitch(bottom, center, top):
     ######################################################
     # Replace top image
     #finalImage[startIndexRow_top:endIndexRow_top, \
-    #            startIndexCol_top:endIndexCol_top,:] = top 
+    #            startIndexCol_top:endIndexCol_top,:] = top
 
     # Replace Bottom Image
     finalImage[startIndexRow_bottom:endIndexRow_bottom, \
-                startIndexCol_bottom:endIndexCol_bottom,:] = bottom 
+                startIndexCol_bottom:endIndexCol_bottom,:] = bottom
 
     # Fill in center
     #finalImage[startIndexRow_center:endIndexRow_center, \
-    #           startIndexCol_center:endIndexCol_center,:] = center 
+    #           startIndexCol_center:endIndexCol_center,:] = center
 
 
     ######################################################
@@ -121,7 +121,7 @@ def computeStitch(bottom, center, top):
     t = finalImage[startIndexRow_center:endIndexRow_top, \
                 startIndexCol_top:endIndexCol_top,:]
     overlapMiddle = 100
-    
+
     finalImage[startIndexRow_center:startIndexRow_center+overlapMiddle, \
                 startIndexCol_top:endIndexCol_top,:] \
                 = .5*center[0:overlapMiddle,:,:] \
@@ -132,7 +132,7 @@ def computeStitch(bottom, center, top):
     middlePart = 880 - lastPart
     finalImage[startIndexRow_center+overlapMiddle:startIndexRow_center+overlapMiddle + middlePart, \
                 startIndexCol_top:endIndexCol_top,:] \
-                = center[overlapMiddle:overlapMiddle+middlePart,:,:] 
+                = center[overlapMiddle:overlapMiddle+middlePart,:,:]
 
 
     # Lower Overlap
@@ -141,20 +141,25 @@ def computeStitch(bottom, center, top):
     finalImage[fI_R:fI_R+ lastPart, \
                 startIndexCol_top:endIndexCol_top,:] \
     = .5*bottom[fI_R - startIndexRow_bottom:fI_R - startIndexRow_bottom + lastPart,:,:] \
-      + .5*center[overlapMiddle+middlePart:overlapMiddle+middlePart+lastPart,:,:] 
-    
+      + .5*center[overlapMiddle+middlePart:overlapMiddle+middlePart+lastPart,:,:]
+
 
     # Replace Bottom Image
     #finalImage[startIndexRow_bottom:endIndexRow_bottom, \
-    #            startIndexCol_bottom:endIndexCol_bottom,:] = bottom 
+    #            startIndexCol_bottom:endIndexCol_bottom,:] = bottom
 
     # Fill in center
     #finalImage[startIndexRow_center:endIndexRow_center, \
-    #           startIndexCol_center:endIndexCol_center,:] = center 
+    #           startIndexCol_center:endIndexCol_center,:] = center
 
 
 
     # Show the final image
+    print startIndexRow_top
+    print endIndexRow_bottom
+    print startIndexCol_top
+    print endIndexCol_top
+    
     finalImage = finalImage[250+startIndexRow_top:endIndexRow_bottom-500,\
                             startIndexCol_top:endIndexCol_top,:]
     #cv2.imshow("Final Image", rz(finalImage))
@@ -170,5 +175,5 @@ if __name__ == '__main__':
     center = (cv2.imread('center1.jpg'))
     top    = (cv2.imread('wall1.jpg'))
 
-    computeStitch(bottom, center, top)
-    
+    final = computeStitch(bottom, center, top)
+    cv2.imwrite('stitched.jpg', final)
