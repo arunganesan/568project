@@ -101,6 +101,7 @@ if __name__ == '__main__':
         correct['px_x'] = x
         correct['px_y'] = y
         correct['cov'] = P
+        correct['ts'] = parts[12]
 
         groundtruth.append(correct)
         to_be_saved.append({
