@@ -1,15 +1,16 @@
 #! /usr/bin/env python
 
 class Reading:
-    def __init__ (self, y, r, dt):
+    def __init__ (self, x, y, r, dt):
+        self.x = x;
         self.y = y;
         self.r = r; 
         self.dt = dt;
-
+    
 
     def get_nparr (self):
         import numpy as np
-        return np.array([self.y, self.r, self.dt])
+        return np.array([self.x, self.y, self.r, self.dt])
     
     def __str__ (self):
         "1"
@@ -56,21 +57,14 @@ class IMU:
     
     if len(self.readings) == 0: return None
     else: 
-        nparr = np.zeros(3)
-        nparr[0] = self.readings[-1].y
-        nparr[1] = self.readings[-1].r
-        nparr[2] = self.readings[-1].dt
+        nparr = np.zeros(4)
+        nparr[0] = self.readings[-1].x
+        nparr[1] = self.readings[-1].y
+        nparr[2] = self.readings[-1].r
+        nparr[3] = self.readings[-1].dt
         return nparr
 
-  def get_averaged (self):
-      import numpy as np
-      arrays = np.zeros((len(self.readings), 3))
-      for idx, read in enumerate(self.readings):
-          nparr = read.get_nparr()
-          arrays[idx,:] = nparr
-      return np.mean(arrays, 0)
-
-
+  
   def clear_all (self):
       self.readings = []
 
@@ -81,7 +75,7 @@ class IMU:
           try:
                 line = p.stdout.readline()
                 parts = line.split();
-                if len(parts) != 3: continue
+                if len(parts) != 4: continue
                 parts = map(float, parts)
                 #print 'Acc=({0:02},{1:02},{2:02}) Gyro=({3:02},{4:02},{5:02})'.format(*parts)
                 reading = Reading(*parts)

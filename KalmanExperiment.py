@@ -213,20 +213,25 @@ try:
         if args.usedata: 
             motion = batch['imu']
         else:
-          motion = imu.get_latest(); imu.clear_all()
+          # Get data, process a little
+          motion = imu.get_latest()
+          imu.clear_all()
           motion -= offsetU
           if args.negativegyro: 
-            motion[1] = -1*motion[1]
+            motion[2] = -1*motion[2]
+
+          # Motion is [x, y, roll, dt]
+          # Dump processed data. No need to reprocess
           datadump.append([t2, 'imu', motion])
         
         rk.u = motion
         
         """
-        velocity_Y += diff*rk.u[0]
+        velocity_Y += diff*rk.u[1]
 
         # XXX This is not used.
         # We are getting velocity frmo joystick
-        rk.u[0] = velocity_Y
+        rk.u[1] = velocity_Y
         """
         # Receiving joystick control
         if args.usedata: joy = batch['joystick']
@@ -235,13 +240,13 @@ try:
           datadump.append([t2, 'joystick', joy])
         
 
-        rk.u[0] = joy
-        if math.isnan(rk.u[0]): rk.u[0] = 0 
-
+        rk.u[1] = joy
+        if math.isnan(rk.u[1]): rk.u[1] = 0 
+        
         #print joy
         # Change process matrix accordingly
-        v = rk.u[0]
-        w = math.radians(float(rk.u[1]))
+        v = rk.u[1]
+        w = math.radians(float(rk.u[2]))
         if w == 0: w = 1e-5
         th = rk.x[2]
         

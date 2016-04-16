@@ -143,7 +143,7 @@ void on_data(const float data[])
         
         //cout << accX << " " << accY << " " << accZ << " " << yaw << " " << pitch << " " << roll << " " <<dt << endl;
         
-        cout << accY << " "  << gyroRoll/scalar << " " << dt << endl;
+        cout << accX << " " << accY << " "  << gyroRoll/scalar << " " << dt << endl;
         
         //cout << fixed << setprecision(3) << setw(10) << yaw << setw(10) << pitch << setw(10) <<  roll << endl;
         //cout << accX << " " << accY << " " << accZ << " " << gyroYaw << " " << gyroPitch << " " << gyroRoll << " " <<dt << endl;
