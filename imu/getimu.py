@@ -4,14 +4,14 @@ class Reading:
     def __init__ (self, x, y, r, dt):
         self.x = x;
         self.y = y;
-        self.r = r; 
+        self.r = r;
         self.dt = dt;
-    
+
 
     def get_nparr (self):
         import numpy as np
         return np.array([self.x, self.y, self.r, self.dt])
-    
+
     def __str__ (self):
         "1"
         #return 'dt={6:02} Acc=({0:02},{1:02},{2:02}) Gyro=({3:02},{4:02},{5:02})'.\
@@ -46,7 +46,7 @@ class IMU:
     while (self.parent_conn.poll(0.01) != False):
         reading = self.parent_conn.recv()
         self.readings.append(reading)
-    
+
     if len(self.readings) > 10:
         print 'Warning: Cleared pipe, {} elements remaining, maybe trashing.'.format(len(self.readings))
     #print 'Cleared pipe. Readings has {} elements'.format(len(self.readings))
@@ -54,9 +54,9 @@ class IMU:
 
   def get_latest (self):
     self._clear_pipe()
-    
+
     if len(self.readings) == 0: return None
-    else: 
+    else:
         nparr = np.zeros(4)
         nparr[0] = self.readings[-1].x
         nparr[1] = self.readings[-1].y
@@ -64,7 +64,7 @@ class IMU:
         nparr[3] = self.readings[-1].dt
         return nparr
 
-  
+
   def clear_all (self):
       self.readings = []
 
@@ -76,12 +76,15 @@ class IMU:
                 line = p.stdout.readline()
                 parts = line.split();
                 if len(parts) != 4: continue
+
+                if 'Raz' in str(parts[0]): continue
+
                 parts = map(float, parts)
                 #print 'Acc=({0:02},{1:02},{2:02}) Gyro=({3:02},{4:02},{5:02})'.format(*parts)
                 reading = Reading(*parts)
                 #self.readings.append(reading)
                 #print "(from cont, len is {})".format(len(self.readings))
-                
+
                 #print 'Got line {}'.format(len(line))
                 child_conn.send(reading)
                 if child_conn.poll(0.01):

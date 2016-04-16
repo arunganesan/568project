@@ -15,7 +15,7 @@ parser.add_argument('--theta', type=float, default=0)
 parser.add_argument('--silent', action='store_true')
 parser.add_argument('--usedata', type=str)
 parser.add_argument('--negativegyro', action='store_true')
-parser.add_argument('--num_particles', default=1000)
+parser.add_argument('--num_particles', default=10)
 
 parser.add_argument('--savefilter', type=str, default='runs/output.txt', help="Saves the filter state to be used in matlab")
 parser.add_argument('--savedata', type=str, default='runs/data.pkl', help="Saves the data file of the control inputs")
