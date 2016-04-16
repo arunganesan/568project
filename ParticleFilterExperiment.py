@@ -44,8 +44,8 @@ THCOV = 1
 range_std = 0.005 # metersi
 range_angle = 1
 april_angle = 1
-velocity_std = 5
-omega_std = 5
+velocity_std = .01
+omega_std = 3*math.pi/180
 
 
 
@@ -62,7 +62,7 @@ VEL_DECAY = 0    # Reduce the velocity by this factor if we detect no motion
 
 
 
-NUM_PARTICLES = args.num_particles
+NUM_PARTICLES = int(args.num_particles)
 
 
 #####################################
@@ -112,7 +112,7 @@ sock = udpstuff.init()
 initialMean = array([[args.x, args.y, args.theta]]).T
 
 # Measurement Noise
-R = np.array([[math.radians(april_angle)**2]])
+R = np.array([[math.radians(april_angle*math.pi/180)**2]])
 
 
 # Create Particles
@@ -120,11 +120,15 @@ particles = []
 for i in range(NUM_PARTICLES):
     particles.append(Particle(x=initialMean, v_std=velocity_std, w_std=omega_std, R=R))
 
+# Perturb Particles randomly
+for particle in particles:
+    particle.perturb(x_std = .3, y_std = .3, theta_std = 20.0*math.pi/180.0)
+
+
 # Create Resampling particles
 newParticles = []
 # Initizalize weights
 weights = np.zeros((NUM_PARTICLES, 1))
-
 
 
 
@@ -202,10 +206,11 @@ try:
           motion = imu.get_latest(); imu.clear_all()
           motion -= offsetU
           if args.negativegyro:
-            motion[1] = -1*motion[1]
+            motion[2] = -1*motion[2]
           datadump.append([t2, 'imu', motion])
 
         u = motion
+        u = u[1:]
 
 
 
@@ -265,14 +270,16 @@ try:
             landmarkPosition = get_landmark(markerId)
 
             z[0] = math.radians(z[0])
-            #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
 
             # Update weights
             for i in range(NUM_PARTICLES):
                 weights[i] = particles[i].computeWeight(z, landmarkPosition)
             # Normalize the weights
-            weights /= sum(weights)
-
+            print np.sum(weights)
+            weights /= np.sum(weights)
+            print "WEIGHTS"
+            print weights.T
+            print np.sum(weights)
             # Resample weights
             index = resampling.systematic_resample(weights)
 
@@ -286,7 +293,7 @@ try:
         # Printing state of
         #outstr = printParticles(particles, args.savefilter)
         mean, P = meanAndVariance(particles)
-        print  mean
+        print mean.T
 
         #if not args.silent: printStuff(rk, measurements, diff)
         #udpstuff.send_message(sock, outstr)
