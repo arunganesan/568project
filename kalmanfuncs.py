@@ -34,8 +34,9 @@ def hx(x, landmarkPosition):
 
 # Our own prediction function. It updates the state and the covariance.
 def predict_State(rk, dt):
-    v = rk.u[0]
-    w = math.radians(rk.u[1])
+    # rk.u is [accx, vel, corrected gyro, dt]
+    v = rk.u[1]
+    w = math.radians(rk.u[2])
     if w == 0: w = 1e-5
     th = rk.x[2]
     

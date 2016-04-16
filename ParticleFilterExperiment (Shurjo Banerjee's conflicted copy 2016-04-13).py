@@ -1,9 +1,6 @@
 # np.dot(rk.F, rk.xi Require different functions to run (This seems like bad practice)
-import sys
-import os, pickle
 
-from filterpy.common import Q_discrete_white_noise
-from filterpy.kalman import ExtendedKalmanFilter
+from filterpy import monte
 from numpy import eye, array, asarray
 import numpy as np, time, math, subprocess
 
@@ -19,6 +16,7 @@ parser.add_argument('--theta', type=float, default=0)
 parser.add_argument('--silent', action='store_true')
 parser.add_argument('--usedata', type=str)
 parser.add_argument('--negativegyro', action='store_true')
+parser.add_argument('--num_particles', default=1000)
 
 parser.add_argument('--savefilter', type=str, default='runs/output.txt', help="Saves the filter state to be used in matlab")
 parser.add_argument('--savedata', type=str, default='runs/data.pkl', help="Saves the data file of the control inputs")
@@ -47,8 +45,11 @@ THCOV = 1
 # Noise Parameters (will require tuning)
 range_std = 0.005 # metersi
 range_angle = 1
-april_angle = 10
+april_angle = 1
 
+# Odometery Noise Parameters
+velocity_std = 0.5
+omega_std = .5
 
 
 # Flow related constants
@@ -63,18 +64,8 @@ VEL_DECAY = 0    # Reduce the velocity by this factor if we detect no motion
                     # in the optical flow
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+# Initialize number of particles
+NUM_PARTICLES = args.num_particles
 
 
 #####################################
@@ -108,7 +99,6 @@ if args.usedata == None:
   offsetU = u
 
 
-  
   # Initialize measurement
   measure = Measure(debug_mode=False)
 
@@ -118,32 +108,27 @@ if args.usedata == None:
 
 sock = udpstuff.init()
 
-# Initialize Kalman
 
-# Initialize Extended Kalman Filter
-rk = ExtendedKalmanFilter(dim_x=3, dim_z=1)
 
+# Initialize Particle Filter
+rk = Particle(dim_x=3, v_std=velocity_std, w_std=omega_std)
 # Starting guess location
-rk.x = array([[args.x, args.y, args.theta]]).T
+initialMean = array([[args.x, args.y, args.theta]]).T
 
-# Motion Noise
-rk.Q = np.diag([range_std**2, range_std**2, math.radians(range_angle)**2])
+
+# Create Particles and distribute them as required
+particles = []
+newParticles = []
+for i in range(NUM_PARTICLES):
+    particles.append(Particle(x=initialMean, v_std=velocity_std, w_std=omega_std))
+    particles[i].perturb(10,10,2*math.pi)
+    newParticles.append([particles[i])
+
+# Create Weights that are equally weighted
+wts = np.zeros(1,NUM_PARTICLES)/NUM_PARTICLES
 
 # Measurement Noise
 rk.R = np.array([[math.radians(april_angle)**2]])
-
-# Covariance matrix
-rk.P = np.diag([XCOV**2, YCOV**2, math.radians(THCOV)**2])
-
-
-
-
-
-
-
-
-
-
 
 
 #####################################
@@ -209,64 +194,51 @@ try:
         #################################################
 
         # Recieve Control
-        
-        if args.usedata: 
+        if args.usedata:
             motion = batch['imu']
         else:
-          # Get data, process a little
-          motion = imu.get_latest()
-          imu.clear_all()
+          motion = imu.get_latest(); imu.clear_all()
           motion -= offsetU
-          if args.negativegyro: 
-            motion[2] = -1*motion[2]
-
-          # Motion is [x, y, roll, dt]
-          # Dump processed data. No need to reprocess
+          if args.negativegyro:
+            motion[1] = -1*motion[1]
           datadump.append([t2, 'imu', motion])
-        
+
         rk.u = motion
-        
+
         """
-        velocity_Y += diff*rk.u[1]
+        velocity_Y += diff*rk.u[0]
 
         # XXX This is not used.
         # We are getting velocity frmo joystick
-        rk.u[1] = velocity_Y
+        rk.u[0] = velocity_Y
         """
         # Receiving joystick control
         if args.usedata: joy = batch['joystick']
         else:
           joy = joystick.get_latest(); joystick.clear_all()
           datadump.append([t2, 'joystick', joy])
-        
 
-        rk.u[1] = joy
-        if math.isnan(rk.u[1]): rk.u[1] = 0 
-        
+
+        rk.u[0] = joy
+	# Deal with specific error case from the joystick
+        if math.isnan(rk.u[0]): rk.u[0] = 0
+
         #print joy
         # Change process matrix accordingly
-        v = rk.u[1]
-        w = math.radians(float(rk.u[2]))
+        v = rk.u[0]
+        w = math.radians(float(rk.u[1]))
         if w == 0: w = 1e-5
         th = rk.x[2]
-        
-        rk.F = array(   [[1, 0, v/w*(-math.cos(th)+math.cos(th + w*diff))],
-                         [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
-                         [0, 0, 1]])
 
 
-        ## Prediction Step (run my own)
-        rk = predict_State(rk, diff)
+	# Use recieved control to propogate the particles
+	for particle in particles:
+            particle.sampleOdometery(v, w, diff)
 
 
-        #################################################
+        ######################################################
         # Update Step
-        #################################################
-
-        # Measurements is a list of measurements
-        # Each item in the list is a dictionary
-        # {'bearing': degrees, 'tag': id}
-        # If a measurement is not ready, this returns []
+        ######################################################
 
         if args.usedata:
           if 'measurements' not in batch: measurements = []
@@ -281,25 +253,32 @@ try:
             landmarkPosition = get_landmark(markerId)
 
             z[0] = math.radians(z[0])
-            #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
-                
-        
+            # Perform measurement update
+
+            # Compute Weights for each particle
+            for i in range(NUM_PARTICLES):
+                wts[i] = particles[i].computeWeight(z, landmarkPosition)
+
+            # Compute resampling
+
+
+
 
         # Printing state of
-        outstr = printMatlab(rk, t2, args.savefilter)
+        outstr = printMatlab(rk, args.savefilter)
         if not args.silent: printStuff(rk, measurements, diff)
         udpstuff.send_message(sock, outstr)
 
         if not args.usedata: time.sleep(dt)
 
-   
+
 except KeyboardInterrupt, SystemExit:
    sys.stderr.write( 'Shutting down')
    imu.kill()
    flow.kill()
    measure.kill()
    joystick.kill()
-    
+
    print 'Saving data file'
    ofile = open(args.savedata, 'wb')
    pickle.dump(datadump, ofile)
