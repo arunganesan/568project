@@ -36,8 +36,6 @@ def printMatlab (rk, t2, filename):
     ofile.close()
     return outstr
 
-#def printParticles(rk, t2, filenamem, particles):
-#    pass
 
 def minimizedAngle(theta):
     while theta>math.pi:

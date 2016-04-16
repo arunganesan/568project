@@ -1,5 +1,4 @@
-# np.dot(rk.F, rk.xi Require different functions to run (This seems like bad practice)
-
+import sys, os
 from numpy import eye, array, asarray
 import numpy as np, time, math, subprocess
 import copy
@@ -25,7 +24,6 @@ args = parser.parse_args()
 
 # Nulling out the files
 open(args.savefilter, 'w').close()
-
 
 
 
@@ -64,7 +62,7 @@ VEL_DECAY = 0    # Reduce the velocity by this factor if we detect no motion
 
 
 
-NUM_PARTICLES = args.NUM_PARTICLES
+NUM_PARTICLES = args.num_particles
 
 
 #####################################
@@ -114,18 +112,18 @@ sock = udpstuff.init()
 initialMean = array([[args.x, args.y, args.theta]]).T
 
 # Measurement Noise
-rk.R = np.array([[math.radians(april_angle)**2]])
+R = np.array([[math.radians(april_angle)**2]])
 
 
 # Create Particles
 particles = []
 for i in range(NUM_PARTICLES):
-    particles.append(Particle(x=initialMean, v_std=velocity_std, w_std=omega_std)
+    particles.append(Particle(x=initialMean, v_std=velocity_std, w_std=omega_std, R=R))
 
 # Create Resampling particles
 newParticles = []
 # Initizalize weights
-weights = np.zeros((1,NUM_PARTICLES))
+weights = np.zeros((NUM_PARTICLES, 1))
 
 
 
@@ -207,7 +205,7 @@ try:
             motion[1] = -1*motion[1]
           datadump.append([t2, 'imu', motion])
 
-        rk.u = motion
+        u = motion
 
 
 
@@ -225,20 +223,19 @@ try:
           datadump.append([t2, 'joystick', joy])
 
 
-        rk.u[0] = joy
-        if math.isnan(rk.u[0]): rk.u[0] = 0
+        u[0] = joy
+        if math.isnan(u[0]): u[0] = 0
 
         #print joy
         # Change process matrix accordingly
-        v = rk.u[0]
-        w = math.radians(float(rk.u[1]))
+        v = u[0]
+        w = math.radians(float(u[1]))
         if w == 0: w = 1e-5
-        th = rk.x[2]
 
         #################################################
-        # Move Paritcles based on control
+        # Move Particles based on control
         #################################################
-        for particle in particles():
+        for particle in particles:
             particle.sampleOdometery(v, w, diff)
 
         #################################################
@@ -273,9 +270,11 @@ try:
             # Update weights
             for i in range(NUM_PARTICLES):
                 weights[i] = particles[i].computeWeight(z, landmarkPosition)
+            # Normalize the weights
+            weights /= sum(weights)
 
             # Resample weights
-
+            index = resampling.systematic_resample(weights)
 
             # Create new Particles
             for n in index:
@@ -285,9 +284,12 @@ try:
 
 
         # Printing state of
-        outstr = printParticles(rk, args.savefilter)
-        if not args.silent: printStuff(rk, measurements, diff)
-        udpstuff.send_message(sock, outstr)
+        #outstr = printParticles(particles, args.savefilter)
+        mean, P = meanAndVariance(particles)
+        print  mean
+
+        #if not args.silent: printStuff(rk, measurements, diff)
+        #udpstuff.send_message(sock, outstr)
 
         if not args.usedata: time.sleep(dt)
 
