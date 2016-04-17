@@ -44,8 +44,8 @@ THCOV = 1
 range_std = 0.005 # metersi
 range_angle = 1
 april_angle = 1
-velocity_std = .01
-omega_std = 3*math.pi/180
+velocity_std =  0.000001
+omega_std = 0.001*math.pi/180
 
 
 
@@ -112,7 +112,7 @@ sock = udpstuff.init()
 initialMean = array([[args.x, args.y, args.theta]]).T
 
 # Measurement Noise
-R = np.array([[math.radians(april_angle*math.pi/180)**2]])
+R = np.array([[math.radians(april_angle)**2]])
 
 
 # Create Particles
@@ -122,7 +122,7 @@ for i in range(NUM_PARTICLES):
 
 # Perturb Particles randomly
 for particle in particles:
-    particle.perturb(x_std = .3, y_std = .3, theta_std = 20.0*math.pi/180.0)
+    particle.perturb(x_std = .1, y_std = .1, theta_std = 20.0*math.pi/180.0)
 
 
 # Create Resampling particles
@@ -276,6 +276,9 @@ try:
                 weights[i] = particles[i].computeWeight(z, landmarkPosition)
             # Normalize the weights
             print np.sum(weights)
+            if np.sum(weights) == 0:
+                print 'Weights were 0!'
+                weights = np.ones(weights.shape)*(1.0/NUM_PARTICLES)
             weights /= np.sum(weights)
             print "WEIGHTS"
             print weights.T
