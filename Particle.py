@@ -36,18 +36,22 @@ class Particle:
         dx = landmarkPosition[0] - self.x[0]
         dy = landmarkPosition[1] - self.x[1]
         h = np.array([minimizedAngle(math.atan2(dy, dx) - self.x[2])])
-        return prob(measurement-h,self.R);
+        wt = prob(measurement-h,self.R);
+        print measurement-h, self.R, wt
+        return wt
 
 # Evaluate probability (for weight computation)
 def prob(a, bsq):
-    return 1.0/math.sqrt(2*math.pi)*math.exp(-.5*a**2 /bsq)
+    #expon = math.exp(-0.5*a**2 / bsq)
+    #print expon
+    return 1.0/math.sqrt(2.0*math.pi*bsq)*math.exp(-.5*a**2 /bsq)
 
 # Find mean/variance of a list of particles (1st moment)
 def meanAndVariance(particles):
-    NUM_PARTICLES=len(particles)
+    NUM_PARTICLES=float(len(particles))
 
     # Calculate mean
-    mean = array([[0, 0, 0]]).T
+    mean = array([[0.0, 0.0, 0.0]]).T
     cosSum = 0
     sinSum = 0
     for particle in particles:
