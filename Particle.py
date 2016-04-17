@@ -8,10 +8,10 @@ class Particle:
     def __init__(self, x = array([[0, 0, 0]]).T, dim_x=3, v_std=0, w_std=0, R=0):
         if x is None:
             self.x = np.zeros((dim_x, 1))
-        self.x = copy.copy(x)
-        self.v_std = copy.copy(v_std)
-        self.w_std = copy.copy(w_std)
-        self.R = copy.copy(R)
+        self.x = copy.deepcopy(x)
+        self.v_std = copy.deepcopy(v_std)
+        self.w_std = copy.deepcopy(w_std)
+        self.R = copy.deepcopy(R)
 
     def sampleOdometery(self, v, w, dt):
        # Add noise to the control input
@@ -36,7 +36,7 @@ class Particle:
         dx = landmarkPosition[0] - self.x[0]
         dy = landmarkPosition[1] - self.x[1]
         h = np.array([minimizedAngle(math.atan2(dy, dx) - self.x[2])])
-        wt = 1/100.0#abs(measurement-h)#prob(measurement-h,self.R);
+        wt = prob(measurement-h,self.R);
         print measurement-h, self.R, wt
         return wt
 
