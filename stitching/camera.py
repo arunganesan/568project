@@ -85,54 +85,55 @@ if __name__ == '__main__':
         x, y, th = parts[0:3]
         P = np.array([parts[3:6], parts[6:9], parts[9:12]])
 
-	correct = {
-	  'idx': idx,
-	  'x': x,
-	  'y': y,
-	  'th': th
-	}
+        correct = {
+         'idx': idx,
+         'x': x,
+         'y': y,
+         'th': th
+        }
 
-    x,y = xy2pxls (x, y)
-
-
-
-	#x = image.shape[0] - x
-	y = image.shape[1] - y
-	correct['px_x'] = x
-	correct['px_y'] = y
-	correct['cov'] = P
-
-	groundtruth.append(correct)
-	to_be_saved.append({
-			'door': frame0,
-			'center': frame1,
-			'wall': frame2,
-			'idx': idx,
-			'data': data
-		})
-
-	#filename = 'image_{:05}.png'.format(idx)
-	#fullres_filename = 'fullres_{:05}.png'.format(idx)
-	#wall_filename = 'wall_{:05}.png'.format(idx)
-	#center_filename = 'center_{:05}.png'.format(idx)
-	#door_filename = 'door_{:05}.png'.format(idx)
+        x,y = xy2pxls (x, y)
 
 
-	idx += 1
 
-	#cv2.imwrite(fullres_filename, image)
-    	#cv2.imwrite(wall_filename, frame2)
-    	#cv2.imwrite(center_filename,frame1)
-    	#cv2.imwrite(door_filename, frame0)
+        #x = image.shape[0] - x
+        y = image.shape[1] - y
+        correct['px_x'] = x
+        correct['px_y'] = y
+        correct['cov'] = P
+        correct['ts'] = parts[12]
 
-    	#plotcov2d(image, (int(x),int(y)), P)
-    	#cv2.circle(image, (int(x), int(y)), 100, (255, 0, 0), -1);
+        groundtruth.append(correct)
+        to_be_saved.append({
+            'door': frame0,
+            'center': frame1,
+            'wall': frame2,
+            'idx': idx,
+            'data': data
+        })
 
-    	#print "received message:", data
-    	image = imutils.resize(image, width=800)
+        #filename = 'image_{:05}.png'.format(idx)
+        #fullres_filename = 'fullres_{:05}.png'.format(idx)
+        #wall_filename = 'wall_{:05}.png'.format(idx)
+        #center_filename = 'center_{:05}.png'.format(idx)
+        #door_filename = 'door_{:05}.png'.format(idx)
 
-   	#cv2.imwrite(filename, image)
-    	cv2.imshow('frame', image)
+
+        idx += 1
+
+        #cv2.imwrite(fullres_filename, image)
+
+        #cv2.imwrite(wall_filename, frame2)    	#cv2.imwrite(center_filename,frame1)
+        #cv2.imwrite(door_filename, frame0)
+
+        #plotcov2d(image, (int(x),int(y)), P)
+        #cv2.circle(image, (int(x), int(y)), 100, (255, 0, 0), -1);
+
+        #print "received message:", data
+        image = imutils.resize(image, width=800)
+
+        #cv2.imwrite(filename, image)
+        cv2.imshow('frame', image)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -141,25 +142,25 @@ if __name__ == '__main__':
 
     import pickle
     for row in to_be_saved:
-	idx = row['idx']
+        idx = row['idx']
 
-	print 'saving {}'.format(idx)
+        print 'saving {}'.format(idx)
 
-	wall_filename = 'wall_{:05}.png'.format(idx)
-	center_filename = 'center_{:05}.png'.format(idx)
-	door_filename = 'door_{:05}.png'.format(idx)
+        wall_filename = 'results/bottom_{:05}.png'.format(idx)
+        center_filename = 'results/middle_{:05}.png'.format(idx)
+        door_filename = 'results/top_{:05}.png'.format(idx)
 
-	wall = row['wall']
-	center = row['center']
-	door = row['door']
+        wall = row['wall']
+        center = row['center']
+        door = row['door']
 
-	cv2.imwrite(wall_filename, wall)
-    	cv2.imwrite(center_filename,center)
-    	cv2.imwrite(door_filename, door)
+        cv2.imwrite(wall_filename, wall)
+        cv2.imwrite(center_filename,center)
+        cv2.imwrite(door_filename, door)
 
-	#ofile = open('results.txt', 'wb')
-    #pickle.dump(groundtruth, ofile)
-    #ofile.close()
+    ofile = open('results.pkl', 'wb')
+    pickle.dump(groundtruth, ofile)
+    ofile.close()
 
     del vs0
     del vs1
