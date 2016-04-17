@@ -49,9 +49,13 @@ def minimizedAngle(theta):
 def printParticles(particles, t2, filename):
     num_particles = len(particles)
     ofile = open(filename, 'a')
-    mean, P = meanAndVariance(particles)
-    data = [mean.x[0][0], mean.x[1][0], mean.x[2][0], rk.P[0,0], rk.P[0,1], rk.P[0,2],\
-            rk.P[1,0], rk.P[1,1], rk.P[1,2], rk.P[2,0], rk.P[2,1], rk.P[2,2], t2]
+    x, P = meanAndVariance(particles)
+    data = [x[0][0], x[1][0], x[2][0], P[0,0], P[0,1], P[0,2],\
+            P[1,0], P[1,1], P[1,2], P[2,0], P[2,1], P[2,2], t2]
+
+    for p in particles:
+        data += [p.x[0][0], p.x[1][0], p.x[2][0]];
+
     outstr =  '\t'.join(['{}'.format(d) for d in data]) + '\n'
     ofile.write(outstr)
     ofile.close()

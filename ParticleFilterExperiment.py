@@ -4,7 +4,7 @@ import numpy as np, time, math, subprocess
 import copy
 from utils import *
 from kalmanfuncs import *
-import udpstuff
+import udpstuff, pickle
 from filterpy.monte_carlo import resampling
 
 import argparse
@@ -43,9 +43,9 @@ THCOV = 1
 # Noise Parameters (will require tuning)
 range_std = 0.005 # metersi
 range_angle = 1
-april_angle = 1
-velocity_std =  0.000001
-omega_std = 0.001*math.pi/180
+april_angle = 10#1
+velocity_std =  0.01
+omega_std = 0.01*math.pi/180
 
 
 
@@ -263,7 +263,8 @@ try:
         #################################################
         # Compute weights and then resample particles
         #################################################
-
+        if len(measurements) != 0:
+            print 'We have measurement at: {}'.format(t2)
         for zm in measurements:
             z = np.array([zm['bearing']])
             markerId = zm['id']
@@ -289,12 +290,13 @@ try:
             # Create new Particles
             for n in index:
                 newParticles.append(copy.copy(particles[n]))
-
+            particles = newParticles
+            newParticles = []
 
 
 
         # Printing state of
-        #outstr = printParticles(particles, args.savefilter)
+        outstr = printParticles(particles, t2, args.savefilter)
         mean, P = meanAndVariance(particles)
         print mean.T
 

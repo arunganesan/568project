@@ -1,17 +1,17 @@
 # Base Class for each particle (
 import numpy as np
 from numpy import eye, array
-import math
+import math, copy
 
 class Particle:
 
     def __init__(self, x = array([[0, 0, 0]]).T, dim_x=3, v_std=0, w_std=0, R=0):
         if x is None:
             self.x = np.zeros((dim_x, 1))
-        self.x = x
-        self.v_std = v_std
-        self.w_std = w_std
-        self.R = R
+        self.x = copy.copy(x)
+        self.v_std = copy.copy(v_std)
+        self.w_std = copy.copy(w_std)
+        self.R = copy.copy(R)
 
     def sampleOdometery(self, v, w, dt):
        # Add noise to the control input
@@ -36,7 +36,7 @@ class Particle:
         dx = landmarkPosition[0] - self.x[0]
         dy = landmarkPosition[1] - self.x[1]
         h = np.array([minimizedAngle(math.atan2(dy, dx) - self.x[2])])
-        wt = prob(measurement-h,self.R);
+        wt = 1/100.0#abs(measurement-h)#prob(measurement-h,self.R);
         print measurement-h, self.R, wt
         return wt
 
@@ -64,7 +64,7 @@ def meanAndVariance(particles):
     mean[2] = math.atan2(sinSum, cosSum)
 
     # Calculate Variance
-    variance = array([[0, 0, 0],[0, 0, 0], [0, 0, 0] ]).T
+    variance = array([[0.0, 0.0, 0.0],[0.0, 0.0, 0.0], [0.0, 0.0, 0.0] ]).T
 
     for particle in particles:
         shifted = particle.x - mean
@@ -83,7 +83,3 @@ def minimizedAngle(theta):
         theta += 2*math.pi
 
     return theta
-
-
-
-
