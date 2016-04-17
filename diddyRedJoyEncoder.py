@@ -68,8 +68,12 @@ else:
     maxPower = voltageOut / float(voltageIn)
 
 def get_velocity (power):
-  if power < 0: return -0.3937
-  return 0.3937
+  velocity = 0.1424*(abs(power)**2) + 0.4709*abs(power) - 0.0137
+  if velocity < 0: velocity = 0
+
+  if power < 0: 
+    return -velocity
+  return velocity
 
 # Setup pygame and wait for the joystick to become available
 PBR.MotorsOff()
@@ -163,13 +167,13 @@ try:
                 driveRight = -upDown
                 
                 # Overwrite with fixed power
-                if useFixedPower==1:
-                    if upDown < 0:
-                        driveLeft  = fixed_power/.95
-                        driveRight = fixed_power/.95
-                    elif upDown>0:
-                        driveLeft  = -fixed_power/.95
-                        driveRight = -fixed_power/.95
+                #if useFixedPower==1:
+                #    if upDown < 0:
+                #        driveLeft  = fixed_power/.95
+                #        driveRight = fixed_power/.95
+                #    elif upDown>0:
+                #        driveLeft  = -fixed_power/.95
+                #        driveRight = -fixed_power/.95
 
 
                
