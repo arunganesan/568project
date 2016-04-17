@@ -281,7 +281,7 @@ try:
             landmarkPosition = get_landmark(markerId)
 
             z[0] = math.radians(z[0])
-            rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
+            #rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
                 
         
 

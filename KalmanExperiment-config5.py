@@ -17,7 +17,7 @@ parser.add_argument('-x', type=float, default=0.889)
 parser.add_argument('-y', type=float, default=0.8509)
 parser.add_argument('--theta', type=float, default=0)
 parser.add_argument('--silent', action='store_true')
-parser.add_argument('--usedata', type=str)
+parser.add_argument('--usedata', type=str, default='runs/data.pkl')
 parser.add_argument('--negativegyro', action='store_true')
 
 parser.add_argument('--savefilter', type=str, default='runs/output.txt', help="Saves the filter state to be used in matlab")
@@ -55,7 +55,7 @@ april_angle = 10
 MOTION_THRESH = 10  # The number of pixels that have high motion must be at
                     # least this to be considered a "motion"
 
-LAST_N = 3          # The last number of frames with no motion has to exceed
+LAST_N = 10          # The last number of frames with no motion has to exceed
                     # this value before we consider it to be "stopped". If the
                     # framerate is low, this value needs to be lower.
 
@@ -116,6 +116,8 @@ if args.usedata == None:
   flow = Flow()
 
 
+velocity_Y = 0
+
 sock = udpstuff.init()
 
 # Initialize Kalman
@@ -171,6 +173,8 @@ if args.usedata != None:
 else:
   datadump.append([t1, 'initial', offsetU])
 
+motions = []
+
 try:
     while True:
         if args.usedata:
@@ -193,7 +197,6 @@ try:
           latest_motion = flow.get_motion();
           datadump.append([t2,'flow', latest_motion])
 
-        """
         zerod = False
         if latest_motion != None:
             motions += latest_motion
@@ -202,8 +205,7 @@ try:
                 # Reducing velocities
                 velocity_Y = velocity_Y * VEL_DECAY
                 zerod = True
-        """
-
+        
         #################################################
         # Prediction Step
         #################################################
@@ -226,22 +228,19 @@ try:
         
         rk.u = motion
         
-        """
         velocity_Y += diff*rk.u[1]
-
-        # XXX This is not used.
-        # We are getting velocity frmo joystick
         rk.u[1] = velocity_Y
-        """
+        
         # Receiving joystick control
         if args.usedata: joy = batch['joystick']
         else:
           joy = joystick.get_latest(); joystick.clear_all()
           datadump.append([t2, 'joystick', joy])
         
-
-        rk.u[1] = joy
-        if math.isnan(rk.u[1]): rk.u[1] = 0 
+        
+        #rk.u[1] = joy
+        
+        #if math.isnan(rk.u[1]): rk.u[1] = 0 
         
         #print joy
         # Change process matrix accordingly
