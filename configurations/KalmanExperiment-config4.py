@@ -17,13 +17,13 @@ parser.add_argument('-x', type=float, default=0.889)
 parser.add_argument('-y', type=float, default=0.8509)
 parser.add_argument('--theta', type=float, default=0)
 parser.add_argument('--silent', action='store_true')
-parser.add_argument('--usedata', type=str, default='runs/data.pkl')
+parser.add_argument('--usedata', type=str, default='runs/data-vel-01.pkl')
 parser.add_argument('--negativegyro', action='store_true')
 
-parser.add_argument('--savefilter', type=str, default='runs/output.txt', help="Saves the filter state to be used in matlab")
+parser.add_argument('--savefilter', type=str, default='runs/config4.txt', help="Saves the filter state to be used in matlab")
 parser.add_argument('--savedata', type=str, default='runs/data.pkl', help="Saves the data file of the control inputs")
 args = parser.parse_args()
-
+args.negativegyro = True
 
 # Nulling out the files
 open(args.savefilter, 'w').close()
@@ -108,7 +108,7 @@ if args.usedata == None:
   offsetU = u
 
 
-  
+
   # Initialize measurement
   measure = Measure(debug_mode=False)
 
@@ -211,26 +211,26 @@ try:
         #################################################
 
         # Recieve Control
-        
-        if args.usedata: 
+
+        if args.usedata:
             motion = batch['imu']
         else:
           # Get data, process a little
           motion = imu.get_latest()
           imu.clear_all()
           motion -= offsetU
-          if args.negativegyro: 
+          if args.negativegyro:
             motion[2] = -1*motion[2]
 
           # Motion is [x, y, roll, dt]
           # Dump processed data. No need to reprocess
           datadump.append([t2, 'imu', motion])
-        
+
         rk.u = motion
-        
+
         velocity_Y += diff*rk.u[1]
         rk.u[1] = velocity_Y
-        
+
         # Receiving joystick control
         #if args.usedata: joy = batch['joystick']
         #else:
@@ -239,16 +239,16 @@ try:
         #
         #
         #rk.u[1] = joy
-        
-        #if math.isnan(rk.u[1]): rk.u[1] = 0 
-        
+
+        #if math.isnan(rk.u[1]): rk.u[1] = 0
+
         #print joy
         # Change process matrix accordingly
         v = rk.u[1]
         w = math.radians(float(rk.u[2]))
         if w == 0: w = 1e-5
         th = rk.x[2]
-        
+
         rk.F = array(   [[1, 0, v/w*(-math.cos(th)+math.cos(th + w*diff))],
                          [0, 1, v/w*(-math.sin(th) + math.sin(th + w*diff))],
                          [0, 0, 1]])
@@ -281,8 +281,8 @@ try:
 
             z[0] = math.radians(z[0])
             rk.update(z, HJacobian_at, hx, args=landmarkPosition, hx_args=landmarkPosition)
-                
-        
+
+
 
         # Printing state of
         outstr = printMatlab(rk, t2, args.savefilter)
@@ -291,14 +291,14 @@ try:
 
         if not args.usedata: time.sleep(dt)
 
-   
+
 except KeyboardInterrupt, SystemExit:
    sys.stderr.write( 'Shutting down')
    imu.kill()
    flow.kill()
    measure.kill()
    joystick.kill()
-    
+
    print 'Saving data file'
    ofile = open(args.savedata, 'wb')
    pickle.dump(datadump, ofile)

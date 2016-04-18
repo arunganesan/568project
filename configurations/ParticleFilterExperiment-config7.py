@@ -13,14 +13,15 @@ parser.add_argument('-x', type=float, default=0.889)
 parser.add_argument('-y', type=float, default=0.8509)
 parser.add_argument('--theta', type=float, default=0)
 parser.add_argument('--silent', action='store_true')
-parser.add_argument('--usedata', type=str, 'runs/data.pkl')
+
+parser.add_argument('--usedata', type=str, default='runs/data-vel-01.pkl')
 parser.add_argument('--negativegyro', action='store_true')
 parser.add_argument('--num_particles', default=500)
 
-parser.add_argument('--savefilter', type=str, default='runs/output.txt', help="Saves the filter state to be used in matlab")
+parser.add_argument('--savefilter', type=str, default='runs/config7.txt', help="Saves the filter state to be used in matlab")
 parser.add_argument('--savedata', type=str, default='runs/data.pkl', help="Saves the data file of the control inputs")
 args = parser.parse_args()
-
+args.negativegyro = True
 
 # Nulling out the files
 open(args.savefilter, 'w').close()
@@ -266,6 +267,7 @@ try:
         if len(measurements) != 0:
             print 'We have measurement at: {}'.format(t2)
         for zm in measurements:
+            break
             z = np.array([zm['bearing']])
             markerId = zm['id']
             landmarkPosition = get_landmark(markerId)

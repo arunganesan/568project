@@ -36,8 +36,7 @@ class Particle:
         dx = landmarkPosition[0] - self.x[0]
         dy = landmarkPosition[1] - self.x[1]
         h = np.array([minimizedAngle(math.atan2(dy, dx) - self.x[2])])
-        wt = ls
-        prob(measurement-h,self.R);
+        wt = prob(measurement-h,self.R);
         print measurement-h, self.R, wt
         return wt
 
